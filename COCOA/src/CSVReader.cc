@@ -182,12 +182,12 @@ void CSVReader::FillTrackingConfig()
 {
     // auto runData
     // 	= static_cast<DataStorage*>(G4RunManager::GetRunManager()->GetNonConstCurrentRun());
-    read_record(hits_sigma_A0, "./tracking_configuration/d0_resolution.csv");
-    read_record(hits_sigma_Z0, "./tracking_configuration/z0_resolution.csv");
-    read_record(hits_sigma_QP, "./tracking_configuration/qp_resolution.csv");
-    read_record(hits_sigma_Theta, "./tracking_configuration/theta_resolution.csv");
-    read_record(hits_sigma_Phi, "./tracking_configuration/phi_resolution.csv");
-    read_record(hist_recon_eff, "./tracking_configuration/reconstruction_efficiency.csv");
-    read_record(hist_pflow_mean_template, "./pflow_configuration/pflow_mean_template.csv");
-    read_record(hist_pflow_std_template, "./pflow_configuration/pflow_std_template.csv");
+    read_record(hits_sigma_A0, "./COCOA/tracking_configuration/d0_resolution.csv");
+    read_record(hits_sigma_Z0, "./COCOA/tracking_configuration/z0_resolution.csv");
+    read_record(hits_sigma_QP, "./COCOA/tracking_configuration/qp_resolution.csv");
+    read_record(hits_sigma_Theta, "./COCOA/tracking_configuration/theta_resolution.csv");
+    read_record(hits_sigma_Phi, "./COCOA/tracking_configuration/phi_resolution.csv");
+    read_record(hist_recon_eff, "./COCOA/tracking_configuration/reconstruction_efficiency.csv");
+    read_record(hist_pflow_mean_template, "./COCOA/pflow_configuration/pflow_mean_template.csv");
+    read_record(hist_pflow_std_template, "./COCOA/pflow_configuration/pflow_std_template.csv");
 }
