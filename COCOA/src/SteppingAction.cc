@@ -49,18 +49,24 @@ char* SteppingAction::Name_creation(char *name, int low_layer, int high_layer)
 	name[6] = (high_layer+49);
 	return name;
 }
-SteppingAction::SteppingAction(Geometry_definition Geometry) : G4UserSteppingAction()
+SteppingAction::SteppingAction(TrackHistoryRecorder* trackHistoryRecorder,  CaloHistoryRecorder* caloHistoryRecorder,
+															 TrackEventAction* trackEventAction, CaloEventAction* caloEventAction,
+															 Geometry_definition& Geometry) : G4UserSteppingAction()
 {
 
-	geometry = Geometry;
+  trackHistoryRecorder_ = trackHistoryRecorder;
+	caloHistoryRecorder_ = caloHistoryRecorder;
+	trackEventAction_ = trackEventAction;
+	caloEventAction_ = caloEventAction;
+	geometry_ = Geometry;
 	theta_min = 2 * atan(exp(-1 * config_json_var.max_eta_barrel));
-	cone_min_length_flatten = geometry.layer_inn_radius_flatten;
-	cone_max_length_flatten = geometry.layer_out_radius_flatten;
-	int nLow_Layers = geometry.layer_out_radius_flatten.size();
+	cone_min_length_flatten = geometry_.layer_inn_radius_flatten;
+	cone_max_length_flatten = geometry_.layer_out_radius_flatten;
+	int nLow_Layers = geometry_.layer_out_radius_flatten.size();
 	for (int ilow_layer = 0; ilow_layer < nLow_Layers; ilow_layer++)
 	{
-		cone_min_length_flatten.at(ilow_layer) = geometry.layer_inn_radius_flatten.at(ilow_layer) / tan(theta_min);
-		cone_max_length_flatten.at(ilow_layer) = geometry.layer_out_radius_flatten.at(ilow_layer) / tan(theta_min);
+		cone_min_length_flatten.at(ilow_layer) = geometry_.layer_inn_radius_flatten.at(ilow_layer) / tan(theta_min);
+		cone_max_length_flatten.at(ilow_layer) = geometry_.layer_out_radius_flatten.at(ilow_layer) / tan(theta_min);
 	}
 }
 
@@ -105,16 +111,16 @@ int *SteppingAction::CellIndex(const char* cellName, double XPos, double YPos, d
 	    isECAL = false;
 
 	
-	for( size_t iMainLayer = 0; iMainLayer < geometry.layer_inn_radius_ECAL.size(); ++iMainLayer ) {
+	for( size_t iMainLayer = 0; iMainLayer < geometry_.layer_inn_radius_ECAL.size(); ++iMainLayer ) {
 	    if ( isECAL && iMainLayer == mainLayerIndex )
-		break;
-	    R_Bin += geometry.layer_inn_radius_ECAL[iMainLayer].size();
+				break;
+	    R_Bin += geometry_.layer_inn_radius_ECAL[iMainLayer].size();
 	}
 	if ( !isECAL ) {
-	    for( size_t iMainLayer = 0; iMainLayer < geometry.layer_inn_radius_HCAL.size(); ++iMainLayer ) {
+	    for( size_t iMainLayer = 0; iMainLayer < geometry_.layer_inn_radius_HCAL.size(); ++iMainLayer ) {
 		if ( iMainLayer == mainLayerIndex )
 		    break;
-		R_Bin += geometry.layer_inn_radius_HCAL[iMainLayer].size();
+		R_Bin += geometry_.layer_inn_radius_HCAL[iMainLayer].size();
 	    }
 	}
 	
@@ -127,19 +133,19 @@ int *SteppingAction::CellIndex(const char* cellName, double XPos, double YPos, d
 
 	double EtaPos = -1 * log(tan(0.5 * acos(ZPos / pow(r_sqr + pow(ZPos, 2), 0.5))));
 	// Eta_Bin = (int) floor((config_json_var.max_eta_endcap+EtaPos)/d_eta_old);
-	if (EtaPos >= -1 * config_json_var.max_eta_barrel && EtaPos <= config_json_var.max_eta_barrel)
+	/*if (EtaPos >= -1 * config_json_var.max_eta_barrel && EtaPos <= config_json_var.max_eta_barrel)
 	    //
 	    // Phi definition used here does not perfectly match the one used in the cell definition. A rotation in phi is considered Ok though.
 	    //
 	{
-		int nLow_Layers = geometry.number_of_pixels_flatten.size();
+		int nLow_Layers = geometry_.number_of_pixels_flatten.size();
 		for (int ilow_layer = 0; ilow_layer < nLow_Layers; ilow_layer++)
 		{
-		    if ( r_sqr >= pow(geometry.layer_inn_radius_flatten.at(ilow_layer), 2) &&
-			 r_sqr < pow(geometry.layer_out_radius_flatten.at(ilow_layer), 2) ) {
+		    if ( r_sqr >= pow(geometry_.layer_inn_radius_flatten.at(ilow_layer), 2) &&
+			 r_sqr < pow(geometry_.layer_out_radius_flatten.at(ilow_layer), 2) ) {
 			
-				Phi_Bin = (int)floor(PhiPos / geometry.layer_dphi_flatten.at(ilow_layer));
-				Eta_Bin = (int)floor((config_json_var.max_eta_endcap + EtaPos) / (geometry.layer_deta_flatten.at(ilow_layer)));
+				Phi_Bin = (int)floor(PhiPos / geometry_.layer_dphi_flatten.at(ilow_layer));
+				Eta_Bin = (int)floor((config_json_var.max_eta_endcap + EtaPos) / (geometry_.layer_deta_flatten.at(ilow_layer)));
 				break;
 
 		    }
@@ -147,31 +153,37 @@ int *SteppingAction::CellIndex(const char* cellName, double XPos, double YPos, d
 	}
 	else if (EtaPos >= -1 * config_json_var.max_eta_endcap && EtaPos < -1 * config_json_var.max_eta_barrel)
 	{
-		int nLow_Layers = geometry.number_of_pixels_flatten.size();
+		int nLow_Layers = geometry_.number_of_pixels_flatten.size();
 		for (int ilow_layer = 0; ilow_layer < nLow_Layers; ilow_layer++)
 		{
 			if (ZPos >= -1 * cone_max_length_flatten.at(ilow_layer) &&
 				ZPos < -1 * cone_min_length_flatten.at(ilow_layer))
 			{
-				Phi_Bin = (int)floor(PhiPos / geometry.layer_dphi_flatten.at(ilow_layer));
-				Eta_Bin = (int)floor((config_json_var.max_eta_endcap + EtaPos) / (geometry.layer_deta_flatten.at(ilow_layer)));
+				Phi_Bin = (int)floor(PhiPos / geometry_.layer_dphi_flatten.at(ilow_layer));
+				Eta_Bin = (int)floor((config_json_var.max_eta_endcap + EtaPos) / (geometry_.layer_deta_flatten.at(ilow_layer)));
 				break;
 			}
 		}
 	}
 	else if (EtaPos > config_json_var.max_eta_barrel && EtaPos <= config_json_var.max_eta_endcap)
 	{
-		int nLow_Layers = geometry.number_of_pixels_flatten.size();
+		int nLow_Layers = geometry_.number_of_pixels_flatten.size();
 		for (int ilow_layer = 0; ilow_layer < nLow_Layers; ilow_layer++)
 		{
 			if (ZPos >= cone_min_length_flatten.at(ilow_layer) &&
 				ZPos < cone_max_length_flatten.at(ilow_layer))
 			{
-				Phi_Bin = (int)floor(PhiPos / geometry.layer_dphi_flatten.at(ilow_layer));
-				Eta_Bin = (int)floor((config_json_var.max_eta_endcap + EtaPos) / (geometry.layer_deta_flatten.at(ilow_layer)));
+				Phi_Bin = (int)floor(PhiPos / geometry_.layer_dphi_flatten.at(ilow_layer));
+				Eta_Bin = (int)floor((config_json_var.max_eta_endcap + EtaPos) / (geometry_.layer_deta_flatten.at(ilow_layer)));
 				break;
 			}
 		}
+	}*/
+
+	// from the new pr
+	if (abs(EtaPos) <= config_json_var.max_eta_endcap) {
+		Phi_Bin = (int)floor(PhiPos / geometry_.layer_dphi_flatten.at(R_Bin));
+		Eta_Bin = (int)floor((config_json_var.max_eta_endcap + EtaPos) / (geometry_.layer_deta_flatten.at(R_Bin)));
 	}
 
 	ZXYBin[0] = R_Bin;
@@ -184,6 +196,14 @@ int *SteppingAction::CellIndex(const char* cellName, double XPos, double YPos, d
 void SteppingAction::UserSteppingAction(const G4Step *astep)
 {
 	G4Track *aTrack = astep->GetTrack();
+
+	G4TouchableHandle touch	= astep->GetPreStepPoint()->GetTouchableHandle();
+	G4LogicalVolume* volume = touch->GetVolume()->GetLogicalVolume();
+
+	if (aTrack->GetTrackStatus() != fAlive || aTrack->GetTotalEnergy() == 0) {
+		return;
+	}
+
 	
 	// prevent infinite loops
 	if ( aTrack->GetCurrentStepNumber() > 1e5 )
@@ -205,8 +225,10 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 	G4int trackPdgId         = aTrack->GetDefinition()->GetPDGEncoding();
 	std::string volume_name  = touch1->GetVolume()->GetName();
 	G4double eKin            = aTrack->GetKineticEnergy();
-	
-	if ( volume_name.substr(1, 3) == "CAL" ) {
+
+	bool isCalo = volume_name.substr(1, 3) == "CAL";	
+	if (isCalo) {
+		caloEventAction_->AccumulateStepData(astep);
 	    
 	    for ( size_t iPrimaryParticle = 0; iPrimaryParticle < trajectories.fAllTrajectoryInfo.size(); ++iPrimaryParticle ) {
 		
@@ -219,8 +241,7 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 			
 			trajectory.caloExtrapolMaxEkin = eKin;
 			trajectory.caloExtrapolEta     = ThetaToEta( acos( PreStepPoint.z() / sqrt( sqr( PreStepPoint.x() ) + sqr( PreStepPoint.y() ) + sqr( PreStepPoint.z() ) ) ) );
-			trajectory.caloExtrapolPhi     = GetPhi( PreStepPoint.x(),
-								 PreStepPoint.y() );
+			trajectory.caloExtrapolPhi     = GetPhi( PreStepPoint.x(), PreStepPoint.y() );
 			break;
 			
 		    }
@@ -230,7 +251,8 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 	    }
 	    
 	} else if ( std::strstr( volume_name.c_str(), "outermostInner" ) ) {
-
+			//auto trackEventAction = TrackEventAction::GetInstance();
+			//trackHistoryRecorder_->RecordStep(trackEventAction_->simVertices(), astep);
 	    for ( size_t iPrimaryParticle = 0; iPrimaryParticle < trajectories.fAllTrajectoryInfo.size(); ++iPrimaryParticle ) {
 		
 		FullTrajectoryInfo &trajectory = trajectories.fAllTrajectoryInfo[iPrimaryParticle];
@@ -265,10 +287,10 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 		G4double step_l = astep->GetStepLength();
 		int lay_count = 0;
 		bool if_track = true;
-		int num_ecal_layers = geometry.number_of_pixels_ECAL.size();
+		int num_ecal_layers = geometry_.number_of_pixels_ECAL.size();
 		for (int iecal_low = 0; iecal_low < num_ecal_layers; iecal_low++)
 		{
-			int num_sub_ecal_layrs = geometry.number_of_pixels_ECAL.at(iecal_low).size();
+			int num_sub_ecal_layrs = geometry_.number_of_pixels_ECAL.at(iecal_low).size();
 			for (int iecal_high = 0; iecal_high < num_sub_ecal_layrs; iecal_high++)
 			{
 				if (lvol->GetName()==Name_creation(strdup("ECALN_N_forward_LV"),iecal_low,iecal_high)||
@@ -283,10 +305,10 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 			}
 		}
 		lay_count++;
-		int num_hcal_layers = geometry.number_of_pixels_HCAL.size();
+		int num_hcal_layers = geometry_.number_of_pixels_HCAL.size();
 		for (int ihcal_low = 0; ihcal_low < num_hcal_layers; ihcal_low++)
 		{
-			int num_sub_hcal_layers = geometry.number_of_pixels_HCAL.at(ihcal_low).size();
+			int num_sub_hcal_layers = geometry_.number_of_pixels_HCAL.at(ihcal_low).size();
 			for (int ihcal_high = 0; ihcal_high < num_sub_hcal_layers; ihcal_high++)
 			{
 				if (lvol->GetName()==Name_creation(strdup("HCALN_N_forward_LV"),ihcal_low,ihcal_high)||
@@ -353,11 +375,12 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 	if (foundTraj && edep > 0.)
 	{
 
-	        std::string volume_name = touch1->GetVolume()->GetName();
-	        int *Bin                = CellIndex( volume_name.c_str(),
+	        std::string vol_name = touch1->GetVolume()->GetName();
+					//bool isCalo = vol_name.substr(1, 3) == "CAL";
+	        int *Bin = CellIndex( vol_name.c_str(),
 						     PreStepPoint.x(),
 						     PreStepPoint.y(),
-						     PreStepPoint.z() );
+						     PreStepPoint.z());
 
 		G4double Charge = trajectories.fAllTrajectoryInfo.at(mTraj).fPDGCharge;
 		G4double Etot(0), Ech(0.), Enu(0.); //, EHadCh(0.), EHadNu(0.), EEM(0.);
@@ -383,10 +406,38 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 		    }
 		}
 		
-		
-		if ((*Bin >= 0 && *Bin < geometry.kNLayers))
+		ParticlesSoA& particles_soa = caloEventAction_->GetParticlesSoA();
+		auto& trackid_to_idx = particles_soa.trackid_to_idx;
+		//auto it = std::find_if(trackid_to_idx.begin(), trackid_to_idx.end(),
+		//		       [&](std::pair<int, int>& pair) { return pair.first == aTrack->GetTrackID(); });
+		auto it = trackid_to_idx.find(aTrack->GetParentID());
+		int idx = aTrack->GetTrackID();
+		int parent_idx = aTrack->GetParentID();
+		if (it != trackid_to_idx.end()) {
+				idx = it->second;
+				parent_idx = particles_soa.particles_parent_idx[idx];
+		} else {
+			std::unordered_map<int, int>& tracks_stack = caloEventAction_->GetTracksStack();
+			if (tracks_stack.find(aTrack->GetTrackID()) != tracks_stack.end()) {
+				int particle_idx = tracks_stack[aTrack->GetTrackID()];
+				for (auto parent_it = trackid_to_idx.begin(); parent_it != trackid_to_idx.end(); ++parent_it) {
+					if (parent_it->second == particle_idx) {
+						parent_idx = parent_it->first;
+						break;
+					}
+				}
+			}
+			//return;
+		}
+		/*if (parent_idx >= 10) {
+			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			std::cout << "isCalo: " << isCalo << std::endl;	
+			std::cout << "idx: " << idx << std::endl;
+			std::cout << "parent_idx: " << parent_idx << std::endl;
+		}*/
+		if ((*Bin >= 0 && *Bin < geometry_.kNLayers))
 		{
-			if ((*(Bin + 1) >= 0 && *(Bin + 1) < geometry.number_of_pixels_flatten.at(*Bin)) && (*(Bin + 2) >= 0 && *(Bin + 2) < geometry.number_of_pixels_flatten.at(*Bin)))
+			if ((*(Bin + 1) >= 0 && *(Bin + 1) < geometry_.number_of_pixels_flatten.at(*Bin)) && (*(Bin + 2) >= 0 && *(Bin + 2) < geometry_.number_of_pixels_flatten.at(*Bin)))
 			{
 				Etot = Ech + Enu;
 				// runData->AddTotalEnergy(Ech, Enu);
@@ -396,6 +447,7 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 				ptrc.PDG_ID = trajectories.fAllTrajectoryInfo.at(mTraj).fPDGCode;
 
 				ptrc.particle_pos_in_true_list = mTraj;
+
 				
 				if (config_json_var.Use_high_granularity)
 				{
