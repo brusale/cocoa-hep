@@ -17,7 +17,7 @@ void Cell::Reset()
     neutral_energy = 0;
     noise = 0;
     sigma = 0;
-    layer_idx = 0;
+    layer_idx = 0; 
     eta_idx = 0;
     phi_idx = 0;
     label = 0;
@@ -49,6 +49,7 @@ void Cell::Reset()
     is_1st_local_max_assoisited_with_track = false;
     is_2nd_local_max_assoisited_with_track = false;
     truth_label = -1;
+    parent_idx = -999999;
 }
 
 void Cell::subtract_energys_fraction_from_pflow_remnant(float fraction)
@@ -238,8 +239,9 @@ void Cell::add_particle(Particle_dep_in_cell p, bool isConversionElectron)
 {
 
     std::vector<Particle_dep_in_cell> *particle_list_target = &list_of_particles_dep_energy;
+
     if ( isConversionElectron ) {
-	particle_list_target = &list_of_conv_electrons_dep_energy;
+	    particle_list_target = &list_of_conv_electrons_dep_energy;
     }
     
     int sizeptr = particle_list_target->size();
@@ -256,16 +258,42 @@ void Cell::add_particle(Particle_dep_in_cell p, bool isConversionElectron)
     {
         particle_list_target->push_back(p);
     }
+
+    std::cout << __FILE__ << " " << __LINE__ << std::endl;
+    std::cout << "particle_list_target.size(): " << particle_list_target.size() << std::endl;
 }
 
 void Cell::get_particles(std::vector<Particle_dep_in_cell> &particles)
 {
+    auto begin = list_of_particles_dep_energy.begin();
+    auto end = list_of_particles_dep_energy.end();
     particles = list_of_particles_dep_energy;
+    /*if (&(*begin) != 0)
+        particles = list_of_particles_dep_energy;
+    else
+        particles = {};*/
+    std::cout << __FILE__ << " " << __LINE__ << std::endl;
+    std::cout << "list_of_particles_dep_energy.size(): " << std::endl;
+    std::cout << "list_of_particles_dep_energy.size() = " << list_of_particles_dep_energy.size() << std::endl;
+    std::cout << "list_of_particles_dep_energy.begin(): " << &(*begin) << std::endl;
+    std::cout << "list_of_particles_dep_energy.end(): " << &(*end) << std::endl;
 }
 
 void Cell::get_conv_electrons(std::vector<Particle_dep_in_cell> &conv_electrons)
 {
+    auto begin = list_of_conv_electrons_dep_energy.begin();
+    auto end = list_of_conv_electrons_dep_energy.end();
     conv_electrons = list_of_conv_electrons_dep_energy;
+    /*if (&(*begin) != 0) {
+        std::cout << __FILE__ << " " << __LINE__ << std::endl;
+        std::cout << "list_of_conv_electrons_dep_energy.size() = " << list_of_conv_electrons_dep_energy.size() << std::endl;
+        std::cout << "list_of_conv_electrons_dep_energy.begin(): " << &(*begin) << std::endl;
+        std::cout << "list_of_conv_electrons_dep_energy.end(): " << &(*end) << std::endl;
+        conv_electrons = list_of_conv_electrons_dep_energy;
+    } else {
+        std::cout << __FILE__ << " " << __LINE__ << std::endl;
+        conv_electrons = {};
+    }*/
 }
 
 void Cell::set_indexes(int lay, int ind_e, int ind_p, bool is_high)

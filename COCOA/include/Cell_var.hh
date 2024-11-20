@@ -58,6 +58,8 @@ private:
 
     int truth_label;
 
+    int parent_idx;
+
 public:
     Cell();
     Cell(const Cell &orig);
