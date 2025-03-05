@@ -68,6 +68,10 @@ public:
 		CaloEventAction* caloEventAction_;
 		Geometry_definition geometry_;
 		char* Name_creation(char *name, int low_layer, int high_layer);
+
+		std::vector<int> crossingTracks;
+		std::unordered_map<int, int> trackId2ParentId;
+		std::vector<int> recordedTracks;
                     
 };
 

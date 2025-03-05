@@ -34,6 +34,7 @@
 #include "G4Transportation.hh"
 #include "G4CoupledTransportation.hh"
 
+
 using namespace std;
 
 
@@ -94,7 +95,9 @@ void OutputRunAction::BeginOfRunAction(const G4Run *run)
 	Jet_Builder_data &pflow_jets_obj = Jet_Builder_data::Get_instance_pflow();
 	Jet_Builder_data &topo_jets_obj  = Jet_Builder_data::Get_instance_topo();
 	Jet_Builder_data &true_jets_obj  = Jet_Builder_data::Get_instance_true();
-
+	SimShowersData &sim_showers_obj = SimShowersData::GetInstance();
+	SimVerticesData &sim_vertices_obj = SimVerticesData::GetInstance();
+	SimTracksData &sim_tracks_obj = SimTracksData::GetInstance();
 	// Open an output file
 	//
 	G4String fileName = "PFlowNtuple";
@@ -122,6 +125,9 @@ void OutputRunAction::BeginOfRunAction(const G4Run *run)
 		graph_obj.set_tree_branches(outTree_low);
 		true_jets_obj.set_tree_branches(outTree_low);
 		topo_jets_obj.set_tree_branches(outTree_low);
+		sim_showers_obj.set_tree_branches(outTree_low);
+		sim_vertices_obj.set_tree_branches(outTree_low);
+		sim_tracks_obj.set_tree_branches(outTree_low);
 		if (config_var.Use_high_granularity)
 		{
 			outTree_high = new TTree("High_Tree", "High_Tree");

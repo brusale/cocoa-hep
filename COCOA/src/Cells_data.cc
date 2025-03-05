@@ -1,5 +1,6 @@
 #include "Cells_data.hh"
-
+#include "TrackHistoryRecorder.hh"
+#include "TInterpreter.h"
 
 Cells_data::Cells_data(bool is_high)
 {
@@ -45,6 +46,7 @@ void Cells_data::clear()
 	cell_conv_el_idx.clear();
 	cell_parent_list.clear();
 	cell_parent_energy.clear();
+	cell_id.clear();
 	for (int ilow = 0; ilow < ilay_num; ilow++)
 	{
 		std::vector<std::vector<Cell>> vect_cell(Number_Pixel_Flatten.at(ilow),
@@ -56,6 +58,8 @@ void Cells_data::clear()
 			{
 				fCell_array.at(ilow).at(ieta).at(iphi).Reset();
 				fCell_array.at(ilow).at(ieta).at(iphi).set_indexes(ilow, ieta, iphi, high);
+				unsigned int global_idx = ilow + (ieta + iphi * Number_Pixel_Flatten.at(ilow)) * ilay_num;
+				fCell_array.at(ilow).at(ieta).at(iphi).set_cell_id(global_idx);
 			}
 		}
 	}
@@ -96,10 +100,11 @@ void Cells_data::set_tree_branches(TTree *outTree)
 	outTree->Branch("cell_che", "vector<float>", &cell_che);
 	outTree->Branch("cell_nue", "vector<float>", &cell_nue);
 	outTree->Branch("cell_topo_idx", "vector<int>", &cell_topo_idx);
-	outTree->Branch("cell_parent_idx", "vector<int>", &cell_parent_idx);
+	outTree->Branch("cell_parent_idx", "vector<vector<int>>", &cell_parent_idx);
 	outTree->Branch("cell_conv_el_idx", "vector<int>", &cell_conv_el_idx);
 	outTree->Branch("cell_parent_list", "vector< vector <float> >", &cell_parent_list);
 	outTree->Branch("cell_parent_energy", "vector< vector <float> >", &cell_parent_energy);
+	outTree->Branch("cell_id", "vector<unsigned int>", &cell_id);
 }
 
 void Cells_data::fill_cell_var()
@@ -113,6 +118,8 @@ void Cells_data::fill_cell_var()
 	for (int icell = 0; icell < size_Cells_in_topoclusters; icell++)
 	{
 		Cell *local_cell = Cells_in_topoclusters.at(icell);
+		if (local_cell->get_total_energy() == 0)
+			continue;
 		cell_layer.push_back(local_cell->get_layer());
 		cell_x.push_back(local_cell->get_x());
 		cell_y.push_back(local_cell->get_y());
@@ -123,6 +130,7 @@ void Cells_data::fill_cell_var()
 		cell_che.push_back(local_cell->get_charge_energy());
 		cell_nue.push_back(local_cell->get_neutral_energy());
 		cell_topo_idx.push_back(local_cell->get_label());
+		cell_id.push_back(local_cell->get_cell_id());
 		for (int ipflow = 0; ipflow < size_pflow; ipflow++)
 		{
 			if ((pflow_obj.pflow_list.at(ipflow).charge == 0) && (local_cell->get_label() ==pflow_obj.pflow_list.at(ipflow).label))
@@ -148,7 +156,7 @@ void Cells_data::fill_cell_var()
 
 		if (n_parents == 0)
 		{
-			cell_parent_idx.push_back(-1);
+			//cell_parent_idx.push_back(local_cell->get_parent_idx());
 		}
 		else
 		{
@@ -156,7 +164,8 @@ void Cells_data::fill_cell_var()
 			max_parent = std::max_element(valueE.begin(), valueE.end());
 			int max_idx = std::distance(valueE.begin(), max_parent);
 			parent_idx = valueP.at(max_idx);
-			cell_parent_idx.push_back(parent_idx);
+			//cell_parent_idx.push_back(parent_idx);
+			cell_parent_idx.push_back(local_cell->get_parent_idx());
 		}
 
 		std::vector<Particle_dep_in_cell> conv_electrons;
@@ -169,14 +178,14 @@ void Cells_data::fill_cell_var()
 		    float energyDepositedMax  = 0.0;
 		    int   conv_el_maxEdep_idx = 0;
 		    for( size_t iConvEl = 0; iConvEl < conv_electrons.size(); ++iConvEl ) {
-			if ( conv_electrons[iConvEl].Energy > energyDepositedMax ) {
-			    energyDepositedMax  = conv_electrons[iConvEl].Energy;
-			    conv_el_maxEdep_idx = conv_electrons[iConvEl].particle_pos_in_true_list;
-			}
+				if ( conv_electrons[iConvEl].Energy > energyDepositedMax ) {
+			 		energyDepositedMax  = conv_electrons[iConvEl].Energy;
+			    	conv_el_maxEdep_idx = conv_electrons[iConvEl].particle_pos_in_true_list;
+				}
 		    }
 		    cell_conv_el_idx.push_back( conv_el_maxEdep_idx );
 		}
-		
+
 		std::vector<float> cell_parents;
 		std::vector<float> cell_i_parent_energy;
 
@@ -197,14 +206,17 @@ void Cells_data::fill_cell_var()
 	}
 }
 
-void Cells_data::add_cell_info(int ilay, int ieta, int iphi, float ch_en, float nu_en, Particle_dep_in_cell particle, Particle_dep_in_cell* conv_el)
+void Cells_data::add_cell_info(int ilay, int ieta, int iphi, float ch_en, float nu_en, int parent_idx, int pdg_id, 
+															Particle_dep_in_cell particle, Particle_dep_in_cell* conv_el)	
 {
 	fCell_array.at(ilay).at(ieta).at(iphi).add_charge_energy(ch_en);
 	fCell_array.at(ilay).at(ieta).at(iphi).add_neutral_energy(nu_en);
 	fCell_array.at(ilay).at(ieta).at(iphi).add_particle(particle);
+	fCell_array.at(ilay).at(ieta).at(iphi).set_parent_idx(parent_idx);
+	fCell_array.at(ilay).at(ieta).at(iphi).add_parent_energy(parent_idx, (ch_en+nu_en));
+	fCell_array.at(ilay).at(ieta).at(iphi).add_parent_pdg_id(parent_idx, pdg_id);
 	if ( conv_el )
 	    fCell_array.at(ilay).at(ieta).at(iphi).add_particle( *conv_el, true );
-	
 }
 
 void Cells_data::fill_cells_in_topoclusters()
@@ -218,13 +230,18 @@ void Cells_data::fill_cells_in_topoclusters()
             for (int iphi = 0; iphi < (int) Number_Pixel_Flatten.at(ilay); iphi++)
             {
                 Cell &local_cell = fCell_array.at(ilay).at(ieta).at(iphi);
-                if (local_cell.get_label() != 0)
+								if (local_cell.get_charge_energy() == 0 and local_cell.get_neutral_energy() == 0)
+									continue;
+								local_cell.position_in_list = pos_in_list;
+								Cells_in_topoclusters.push_back(&local_cell);  // use all cells
+								pos_in_list++;
+                /*if (local_cell.get_label() != 0)
                 {
                     local_cell.position_in_list = pos_in_list;
                     Cells_in_topoclusters.push_back(&fCell_array.at(ilay).at(ieta).at(iphi));
                     pos_in_list++;
-					sum+=local_cell.get_total_energy();
-                }
+										sum+=local_cell.get_total_energy();
+                }*/
             }
         }
     }

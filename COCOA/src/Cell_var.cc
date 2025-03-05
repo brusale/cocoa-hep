@@ -2,6 +2,7 @@
 #include "DetectorConstruction.hh"
 
 #include <math.h>
+#include <numeric>
 
 Cell::Cell()
 {
@@ -49,7 +50,8 @@ void Cell::Reset()
     is_1st_local_max_assoisited_with_track = false;
     is_2nd_local_max_assoisited_with_track = false;
     truth_label = -1;
-    parent_idx = -999999;
+    //parent_idx = -2;
+    parent_idx.clear();
 }
 
 void Cell::subtract_energys_fraction_from_pflow_remnant(float fraction)
@@ -259,8 +261,6 @@ void Cell::add_particle(Particle_dep_in_cell p, bool isConversionElectron)
         particle_list_target->push_back(p);
     }
 
-    std::cout << __FILE__ << " " << __LINE__ << std::endl;
-    std::cout << "particle_list_target.size(): " << particle_list_target.size() << std::endl;
 }
 
 void Cell::get_particles(std::vector<Particle_dep_in_cell> &particles)
@@ -272,11 +272,6 @@ void Cell::get_particles(std::vector<Particle_dep_in_cell> &particles)
         particles = list_of_particles_dep_energy;
     else
         particles = {};*/
-    std::cout << __FILE__ << " " << __LINE__ << std::endl;
-    std::cout << "list_of_particles_dep_energy.size(): " << std::endl;
-    std::cout << "list_of_particles_dep_energy.size() = " << list_of_particles_dep_energy.size() << std::endl;
-    std::cout << "list_of_particles_dep_energy.begin(): " << &(*begin) << std::endl;
-    std::cout << "list_of_particles_dep_energy.end(): " << &(*end) << std::endl;
 }
 
 void Cell::get_conv_electrons(std::vector<Particle_dep_in_cell> &conv_electrons)
@@ -496,6 +491,55 @@ float Cell::get_eta_pos()
 float Cell::get_phi_pos()
 {
     return phi_pos;
+}
+
+std::vector<int> Cell::get_parent_idx()
+{
+    return parent_idx;
+}
+
+void Cell::set_parent_idx(int idx) 
+{
+    parent_idx.push_back(idx);
+    //parent_idx = idx;
+}
+
+void Cell::add_parent_energy(int idx, float en)
+{
+    if(parentAndEnergy.find(idx) != parentAndEnergy.end())
+    {
+        parentAndEnergy[idx] += en;
+    }
+    else
+    {
+        parentAndEnergy[idx] = en;
+    }
+}
+
+float Cell::get_parent_efrac(int idx)
+{
+    float total_true_energy = std::accumulate(parentAndEnergy.begin(), 
+                                              parentAndEnergy.end(), 
+                                              0.0, 
+                                              [](float sum, std::pair<int, float> p) { return sum + p.second; });
+    return parentAndEnergy[idx] / total_true_energy;
+}
+
+void Cell::add_parent_pdg_id(int idx, int pdg_id)
+{
+    if (parentAndPDGID.find(idx) != parentAndPDGID.end())
+    {
+        return;
+    }
+    else
+    {
+        parentAndPDGID[idx] = pdg_id;
+    }
+}
+
+int Cell::get_parent_pdg_id(int idx)
+{
+    return parentAndPDGID[idx];
 }
 
 void Cell::set_size_of_seeds_list(int size)

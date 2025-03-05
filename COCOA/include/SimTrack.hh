@@ -7,14 +7,16 @@
 class SimTrack {
   public:
     SimTrack() = default;
-    SimTrack(uint32_t trackID, int parentID, int particleID, int simVertexID, G4ThreeVector momentum) :
-      trackID_(trackID), parentID_(parentID), particleID_(particleID), simVertexID_(simVertexID), momentum_(momentum) {}
+    SimTrack(uint32_t trackID, int parentID, int particleID, int simVertexID, G4ThreeVector momentum, G4ThreeVector trackXYZ, int charge) :
+      trackID_(trackID), parentID_(parentID), particleID_(particleID), simVertexID_(simVertexID), momentum_(momentum), trackXYZ_(trackXYZ), charge_(charge) {}
 
-    uint32_t getTrackID();
-    int getParentID();
-    int getParticleID();
-    int getSimVertexID();
-    G4ThreeVector getMomentum();
+    uint32_t getTrackID() { return trackID_; };
+    int getParentID() { return parentID_; };
+    int getParticleID() { return particleID_; };
+    int getSimVertexID() { return simVertexID_; };
+    G4ThreeVector getMomentum() { return momentum_; }
+    G4ThreeVector getTrackXYZ() { return trackXYZ_; }
+    int getCharge() { return charge_; }
 
     void setTrackID(uint32_t trackID) { this->trackID_ = trackID; }
     void setParentID(int parentID) { this->parentID_ = parentID; }
@@ -31,6 +33,7 @@ class SimTrack {
     int particleID_; // PDG code of the particle
     int simVertexID_; // ID of the vertex created by this track
     G4ThreeVector momentum_; // momentum of the particle
-
+    G4ThreeVector trackXYZ_; // position of the particle
+    int charge_; // charge of the particle
 };
 #endif

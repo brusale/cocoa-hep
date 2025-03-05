@@ -61,7 +61,9 @@
 #include "Debug_Particle_Flow_data.hh"
 #include "Jet_Builder_data.hh"
 #include "Detector_analysis_var.hh"
-
+#include "SimShowersData.hh"
+#include "SimVerticesData.hh"
+#include "SimTracksData.hh"
 using namespace std;
 
 class G4Run;

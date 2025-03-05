@@ -50,16 +50,24 @@
 
 using namespace std;
 
+//EventAction *EventAction::Instance = nullptr;
+
 EventAction::EventAction() : G4UserEventAction()
-{;}
+{
+	trackEventAction_ = new TrackEventAction();
+	caloEventAction_ = new CaloEventAction();
+}
 
 EventAction::~EventAction()
 {
-	;
+	delete trackEventAction_;
+	delete caloEventAction_;
 }
 
 void EventAction::BeginOfEventAction(const G4Event *anEvent) //const G4Event* anEvent
 {
+	trackEventAction_->BeginOfTrackEventAction();
+	caloEventAction_->BeginOfCaloEventAction();
 	tracks_list_low.Clear();
 	cells_data_low.clear();
 	cells_data_high.clear();
@@ -75,6 +83,9 @@ void EventAction::BeginOfEventAction(const G4Event *anEvent) //const G4Event* an
 	topo_jets_obj.clear();
 	pion_info.clear();
 	det_ana.clear();
+	sim_showers_obj.clear();
+	sim_tracks_obj.clear();
+	sim_vertices_obj.clear();
 	// const G4Event* ev = anEvent;
 
 #ifdef DEBUG_HEPMC
@@ -161,6 +172,64 @@ void EventAction::EndOfEventAction(const G4Event *evt)
 			tracks_list_low.Fill_perigee_var();
 			cells_data_low.fill_cell_var();
 			cells_data_high.fill_cell_var();
+
+			auto trackHistoryRecorder = TrackHistoryRecorder::GetInstance();
+			std::vector<SimTrack> simTracks_;
+			std::vector<SimVertex> simVertices_;
+			auto trackInfo = trackHistoryRecorder->GetTrackInfo();
+			for (size_t i = 0; i < trackInfo.trackE.size(); ++i) {
+				SimTrack simTrack(i, 
+													trackInfo.trackGenParticleIdx[i],
+													trackInfo.TrackPdgId[i],
+													i,
+													G4ThreeVector(trackInfo.trackPx[i], 
+																				trackInfo.trackPy[i], 
+																				trackInfo.trackPz[i]),
+													G4ThreeVector(trackInfo.trackX[i],
+																				trackInfo.trackY[i],
+																				trackInfo.trackZ[i]),
+													trackInfo.trackCharge[i]
+													);
+				SimVertex simVertex(G4ThreeVector(trackInfo.vertexX[i], 
+																					trackInfo.vertexY[i], 
+																					trackInfo.vertexZ[i]),
+														trackInfo.vertexT[i],
+														trackInfo.vertexGenParticleIdx[i],
+														trackInfo.vertexIdx[i]
+													);
+				simTracks_.push_back(simTrack);
+				simVertices_.push_back(simVertex);
+
+			} 
+			std::vector<SimShower> simShowers_;
+			for (int i = 0; i < cells_data_low.Cells_in_topoclusters.size(); i++)
+			{
+				Cell *local_cell = cells_data_low.Cells_in_topoclusters.at(i);
+				for (auto& parent : local_cell->get_parent_idx())
+				{
+					int parent_idx = parent;
+					if (parent_idx >= simShowers_.size())
+						simShowers_.resize(parent_idx + 1);
+
+					float parent_energy_in_hit = local_cell->get_parent_efrac(parent_idx);
+					simShowers_[parent_idx].AddHit(local_cell, parent_energy_in_hit, i);
+					simShowers_[parent_idx].SetPDGID(local_cell->get_parent_pdg_id(parent_idx));
+					simShowers_[parent_idx].SetTrackID(parent_idx);
+			}
+
+			for (auto& shower : simShowers_)
+				shower.CalculateBarycenter();
+			}
+
+			sim_showers_obj.getSimShowers(simShowers_);
+			sim_showers_obj.fill_shower_var();
+
+			sim_vertices_obj.getSimVertices(simVertices_);
+			sim_vertices_obj.fill_vertex_var();
+
+			sim_tracks_obj.getSimTracks(simTracks_);
+			sim_tracks_obj.fill_track_var();
+
 			if ( config_var.doPFlow )
 			    pflow_obj.fill_cell_var();
 			trajectories.fill_var();
@@ -208,7 +277,7 @@ void EventAction::EndOfEventAction(const G4Event *evt)
 			clustering.topoclustering(topo_clusts.topo_clusts_list);
 			cells_data_low.fill_cells_in_topoclusters();
 			topo_clusts.fill_topo_var();
-
+			
 			if ( config_var.doPFlow )
 			    Particle_flow_func pflow(tracks_list_low.Tracks_list, topo_clusts.topo_clusts_list, cells_data_low.Cells_in_topoclusters, pflow_obj.pflow_list, config_var.low_resolution, config_var.particle_flow);
 			tracks_list_low.Fill_perigee_var();
@@ -242,6 +311,65 @@ void EventAction::EndOfEventAction(const G4Event *evt)
 			jets_build.build_jets(topo_clusts.jets_objects, topo_jets_obj, config_var.jet_parameter);
 			topo_jets_obj.fill_cell_var();
 			jets_build.reset();
+
+			auto trackHistoryRecorder = TrackHistoryRecorder::GetInstance();
+			std::vector<SimTrack> simTracks_;
+			std::vector<SimVertex> simVertices_;
+			auto trackInfo = trackHistoryRecorder->GetTrackInfo();
+			for (size_t i = 0; i < trackInfo.trackE.size(); ++i) {
+				SimTrack simTrack(i, 
+													trackInfo.trackGenParticleIdx[i],
+													trackInfo.TrackPdgId[i],
+													i,
+													G4ThreeVector(trackInfo.trackPx[i], 
+																				trackInfo.trackPy[i], 
+																				trackInfo.trackPz[i]),
+													G4ThreeVector(trackInfo.trackX[i],
+																				trackInfo.trackY[i],
+																				trackInfo.trackZ[i]),
+													trackInfo.trackCharge[i]
+													);
+				SimVertex simVertex(G4ThreeVector(trackInfo.vertexX[i], 
+																					trackInfo.vertexY[i], 
+																					trackInfo.vertexZ[i]),
+														trackInfo.vertexT[i],
+														trackInfo.vertexGenParticleIdx[i],
+														trackInfo.vertexIdx[i]
+													);
+				simTracks_.push_back(simTrack);
+				simVertices_.push_back(simVertex);
+			}
+
+			std::vector<SimShower> simShowers_;
+			for (int i = 0; i < cells_data_low.Cells_in_topoclusters.size(); i++)
+			{
+				Cell *local_cell = cells_data_low.Cells_in_topoclusters.at(i);
+				//for (auto& parent : local_cell->get_particles())
+				for (auto& parent : local_cell->get_parent_idx())
+				{
+					int parent_idx = parent;
+					if (parent_idx >= simShowers_.size())
+						simShowers_.resize(parent_idx + 1);
+
+					float parent_energy_in_hit = local_cell->get_parent_efrac(parent_idx);
+					simShowers_[parent_idx].AddHit(local_cell, parent_energy_in_hit, i);
+					simShowers_[parent_idx].SetPDGID(local_cell->get_parent_pdg_id(parent_idx));
+				}
+			}
+
+			for (auto& shower : simShowers_) {
+				shower.CalculateBarycenter();
+			}
+
+			//SimShowersData sim_showers_obj(simShowers_);
+			sim_showers_obj.getSimShowers(simShowers_);
+			sim_showers_obj.fill_shower_var();
+
+			sim_vertices_obj.getSimVertices(simVertices_);
+			sim_vertices_obj.fill_vertex_var();
+
+			sim_tracks_obj.getSimTracks(simTracks_);
+			sim_tracks_obj.fill_track_var();
 		}
 	}
 

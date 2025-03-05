@@ -43,6 +43,16 @@
 #include "Particle_flow_func.hh"
 #include "Particle_flow_data.hh"
 #include "Detector_analysis_var.hh"
+#include "CaloEventAction.hh"
+#include "CaloHistoryRecorder.hh"
+#include "TrackEventAction.hh"
+#include "TrackHistoryRecorder.hh"
+#include "SimShower.hh"
+#include "SimShowersData.hh"
+#include "SimVertex.hh"
+#include "SimVerticesData.hh"
+#include "SimTrack.hh"
+#include "SimTracksData.hh"
 
 class EventAction : public G4UserEventAction
 {
@@ -50,10 +60,35 @@ public:
 	EventAction();
 	~EventAction();
 
+	//static EventAction* Instance;
+	//static EventAction* GetInstance() {
+	//	if (EventAction::Instance == nullptr) {
+	//		EventAction::Instance = new EventAction();
+	//	}
+	//	return EventAction::Instance;
+	//}
+
 	virtual void BeginOfEventAction(const G4Event *anEvent); //
 	virtual void EndOfEventAction(const G4Event *anEvent);
 
+
+	TrackEventAction* GetTrackEventAction() { return trackEventAction_; }
+  TrackHistoryRecorder* GetTrackHistoryRecorder() { return trackHistoryRecorder_; }
+
+  CaloEventAction* GetCaloEventAction() { return caloEventAction_; }
+  CaloHistoryRecorder* GetCaloHistoryRecorder() { return caloHistoryRecorder_; }
+
+  std::vector<SimVertex> simVertices() { return trackEventAction_->simVertices(); }
+  std::vector<SimTrack> simTracks() { return trackEventAction_->simTracks(); }
+  std::vector<SimCluster> simClusters() { return caloEventAction_->simClusters(); }
+
 private:
+  TrackHistoryRecorder* trackHistoryRecorder_;
+  TrackEventAction* trackEventAction_;
+
+  CaloHistoryRecorder* caloHistoryRecorder_;
+  CaloEventAction* caloEventAction_;
+
 	Tracks_data &tracks_list_low = Tracks_data::GetLow();
 	Cells_data &cells_data_high = Cells_data::GetHigh();
 	Cells_data &cells_data_low = Cells_data::GetLow();
@@ -69,6 +104,10 @@ private:
 	Jet_Builder_data &topo_jets_obj = Jet_Builder_data::Get_instance_topo();
 	Debug_Particle_Flow_data &pion_info = Debug_Particle_Flow_data::GetInstance();
 	Detector_analysis_var &det_ana = Detector_analysis_var::GetInstance();
+	SimShowersData &sim_showers_obj = SimShowersData::GetInstance();
+	SimVerticesData &sim_vertices_obj = SimVerticesData::GetInstance();
+	SimTracksData &sim_tracks_obj = SimTracksData::GetInstance();
+
 };
 
 #endif

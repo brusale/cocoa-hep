@@ -5,6 +5,7 @@
 #include "TMath.h"
 #include <algorithm>
 #include <vector>
+#include <unordered_map>
 #include "Config_reader_var.hh"
 
 
@@ -58,7 +59,11 @@ private:
 
     int truth_label;
 
-    int parent_idx;
+    std::vector<int> parent_idx;
+    std::unordered_map<int, float> parentAndEnergy;
+    std::unordered_map<int, int> parentAndPDGID;
+    unsigned int cell_id;
+
 
 public:
     Cell();
@@ -94,8 +99,21 @@ public:
     float get_noise_signal();
     void set_noise_signal(float en);
 
+    std::vector<int> get_parent_idx();
+    void set_parent_idx(int idx);
+
+    void add_parent_energy(int idx, float en);
+    float get_parent_efrac(int idx);
+
+    void add_parent_pdg_id(int idx, int pdg_id);
+    int get_parent_pdg_id(int idx);
+
+    unsigned int get_cell_id() { return cell_id; }
+    void set_cell_id(unsigned int id) { cell_id = id; }
+
     void add_particle(Particle_dep_in_cell p, bool isConversionElectron = false );
     void get_particles(std::vector<Particle_dep_in_cell> &particles);
+    std::vector<Particle_dep_in_cell> get_particles() { return list_of_particles_dep_energy; }
     void get_conv_electrons(std::vector<Particle_dep_in_cell> &conv_electrons);
 
     int getNParticles() { return list_of_particles_dep_energy.size(); }
@@ -163,6 +181,7 @@ public:
     int get_size_of_seeds_list();
     void set_size_of_seeds_list(int size);
     void set_local_max_weights(std::vector<float> & _1st_local_max_cluster, float energy_1st_local_max_cluster ,std::vector<float> &_2nd_local_max_cluster, float energy_2nd_local_max_cluster);
+
 };
 
 #endif // __CELL_VAR_H__

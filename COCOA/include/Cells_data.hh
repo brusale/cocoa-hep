@@ -24,7 +24,9 @@ private:
     std::vector<float> cell_che;
     std::vector<float> cell_nue;
     std::vector<int> cell_topo_idx;
-    std::vector<int> cell_parent_idx;
+    std::vector<unsigned int> cell_id;
+    std::vector<std::vector<int>> cell_parent_idx;
+    //std::vector<int> cell_parent_idx;
     std::vector<int> cell_conv_el_idx;
     std::vector<std::vector<float>> cell_parent_list;
     std::vector<std::vector<float>> cell_parent_energy;
@@ -50,7 +52,8 @@ public:
     void ChangeLabelForCells(int OldLabel, int NewLabel);
     void set_tree_branches(TTree *outTree);
     void fill_cell_var();
-    void add_cell_info(int ilay, int ieta, int iphi, float ch_en, float nu_en, Particle_dep_in_cell particle, Particle_dep_in_cell* conv_el = nullptr);
+    void add_cell_info(int ilay, int ieta, int iphi, float ch_en, float nu_en, int parent_idx, int pdg_id, 
+                       Particle_dep_in_cell particle, Particle_dep_in_cell* conv_el = nullptr);
     void clear();
     void fill_cells_in_topoclusters();
     int ilay_num;
