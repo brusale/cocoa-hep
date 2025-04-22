@@ -98,6 +98,7 @@ void OutputRunAction::BeginOfRunAction(const G4Run *run)
 	SimShowersData &sim_showers_obj = SimShowersData::GetInstance();
 	SimVerticesData &sim_vertices_obj = SimVerticesData::GetInstance();
 	SimTracksData &sim_tracks_obj = SimTracksData::GetInstance();
+	HistoryData &history_data = HistoryData::GetInstance();
 	// Open an output file
 	//
 	G4String fileName = "PFlowNtuple";
@@ -128,6 +129,7 @@ void OutputRunAction::BeginOfRunAction(const G4Run *run)
 		sim_showers_obj.set_tree_branches(outTree_low);
 		sim_vertices_obj.set_tree_branches(outTree_low);
 		sim_tracks_obj.set_tree_branches(outTree_low);
+		history_data.set_tree_branches(outTree_low);
 		if (config_var.Use_high_granularity)
 		{
 			outTree_high = new TTree("High_Tree", "High_Tree");

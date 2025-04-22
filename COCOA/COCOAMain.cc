@@ -53,6 +53,8 @@
 
 #include "RunTest.hh"
 
+#include "TInterpreter.h"
+
 static void show_usage(std::string name)
 {
 	std::cerr << "Usage: \n" << name << " <option(s)> "
@@ -71,7 +73,13 @@ static void show_usage(std::string name)
 
 int main(int argc, char **argv)
 {
-	std::string path_to_config = "./config/config_lowres.json";
+
+	gInterpreter->GenerateDictionary("vector<vector<int>>", "vector");
+	gInterpreter->GenerateDictionary("vector<vector<unsigned int>>", "vector");
+	gInterpreter->GenerateDictionary("vector<vector<float>>", "vector");
+  gInterpreter->GenerateDictionary("vector<int>", "vector");
+
+  std::string path_to_config = "./config/config_lowres.json";
 	time_t systime = time(NULL);
 	G4long seed = (long)systime;
 	G4UIExecutive *ui = nullptr;
@@ -240,15 +248,24 @@ int main(int argc, char **argv)
 	OutputRunAction *outputrunaction = new OutputRunAction(root_file_path, config_var.Save_truth_particle_graph);
 	runManager->SetUserAction(outputrunaction);
 	//
-	G4UserEventAction *event_action = new EventAction();
+	EventAction* event_action = new EventAction();
+	//G4UserEventAction *event_action = new EventAction();
 	runManager->SetUserAction(event_action);
 	//
 
-	G4UserTrackingAction *track_action = new TrackingAction;
+	G4UserTrackingAction *track_action = new TrackingAction();
 	runManager->SetUserAction(track_action);
 
-	G4UserSteppingAction *stepping_action = new SteppingAction(geometry);
-	runManager->SetUserAction(stepping_action);
+	TrackHistoryRecorder *trackHistoryRecorder =event_action->GetTrackHistoryRecorder();
+	CaloHistoryRecorder *caloHistoryRecorder = event_action->GetCaloHistoryRecorder();
+	TrackEventAction* trackEventAction = event_action->GetTrackEventAction();
+	CaloEventAction* caloEventAction = event_action->GetCaloEventAction();
+  G4UserSteppingAction *stepping_action = new SteppingAction(trackHistoryRecorder, caloHistoryRecorder,
+                                                             trackEventAction, caloEventAction,
+                                                             geometry);
+																											 
+
+  runManager->SetUserAction(stepping_action);
 
 	G4VisManager *visManager = new G4VisExecutive;
 	visManager->Initialize();

@@ -53,6 +53,8 @@
 #include "SimVerticesData.hh"
 #include "SimTrack.hh"
 #include "SimTracksData.hh"
+#include "HistoryTool.hh"
+#include "HistoryData.hh"
 
 class EventAction : public G4UserEventAction
 {
@@ -78,6 +80,8 @@ public:
   CaloEventAction* GetCaloEventAction() { return caloEventAction_; }
   CaloHistoryRecorder* GetCaloHistoryRecorder() { return caloHistoryRecorder_; }
 
+	HistoryTool* GetHistoryTool() { return historyTool_; }
+
   std::vector<SimVertex> simVertices() { return trackEventAction_->simVertices(); }
   std::vector<SimTrack> simTracks() { return trackEventAction_->simTracks(); }
   std::vector<SimCluster> simClusters() { return caloEventAction_->simClusters(); }
@@ -88,6 +92,8 @@ private:
 
   CaloHistoryRecorder* caloHistoryRecorder_;
   CaloEventAction* caloEventAction_;
+
+	HistoryTool* historyTool_;
 
 	Tracks_data &tracks_list_low = Tracks_data::GetLow();
 	Cells_data &cells_data_high = Cells_data::GetHigh();
@@ -107,6 +113,7 @@ private:
 	SimShowersData &sim_showers_obj = SimShowersData::GetInstance();
 	SimVerticesData &sim_vertices_obj = SimVerticesData::GetInstance();
 	SimTracksData &sim_tracks_obj = SimTracksData::GetInstance();
+	HistoryData &history_data = HistoryData::GetInstance();
 
 };
 

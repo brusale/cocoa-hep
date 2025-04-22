@@ -45,6 +45,7 @@
 #include "Graph_construction_data.hh"
 #include "Jet_Builder_func.hh"
 #include "Jet_Builder_data.hh"
+#include "../include/HistoryTool.hh"
 
 #include <memory>
 
@@ -56,6 +57,8 @@ EventAction::EventAction() : G4UserEventAction()
 {
 	trackEventAction_ = new TrackEventAction();
 	caloEventAction_ = new CaloEventAction();
+
+	historyTool_ = HistoryTool::GetInstance();
 }
 
 EventAction::~EventAction()
@@ -68,6 +71,8 @@ void EventAction::BeginOfEventAction(const G4Event *anEvent) //const G4Event* an
 {
 	trackEventAction_->BeginOfTrackEventAction();
 	caloEventAction_->BeginOfCaloEventAction();
+	caloEventAction_->SetNParticlesInEvent(-1);
+	historyTool_->clear();
 	tracks_list_low.Clear();
 	cells_data_low.clear();
 	cells_data_high.clear();
@@ -86,6 +91,7 @@ void EventAction::BeginOfEventAction(const G4Event *anEvent) //const G4Event* an
 	sim_showers_obj.clear();
 	sim_tracks_obj.clear();
 	sim_vertices_obj.clear();
+	history_data.clear();
 	// const G4Event* ev = anEvent;
 
 #ifdef DEBUG_HEPMC
@@ -172,6 +178,14 @@ void EventAction::EndOfEventAction(const G4Event *evt)
 			tracks_list_low.Fill_perigee_var();
 			cells_data_low.fill_cell_var();
 			cells_data_high.fill_cell_var();
+
+			// Fill the history data
+			auto historyTool = HistoryTool::GetInstance();
+			std::vector<SimTrack> historySimTracks = historyTool->simTracks();
+			std::vector<SimVertex> historySimVertices = historyTool->simVertices();
+			history_data.getSimTracks(historySimTracks);
+			history_data.getSimVertices(historySimVertices);
+			history_data.fill_history_var();
 
 			auto trackHistoryRecorder = TrackHistoryRecorder::GetInstance();
 			std::vector<SimTrack> simTracks_;
@@ -311,6 +325,14 @@ void EventAction::EndOfEventAction(const G4Event *evt)
 			jets_build.build_jets(topo_clusts.jets_objects, topo_jets_obj, config_var.jet_parameter);
 			topo_jets_obj.fill_cell_var();
 			jets_build.reset();
+			
+			// Fill the history data
+			auto historyTool = HistoryTool::GetInstance();
+			std::vector<SimTrack> historySimTracks = historyTool->simTracks();
+			std::vector<SimVertex> historySimVertices = historyTool->simVertices();
+			history_data.getSimTracks(historySimTracks);
+			history_data.getSimVertices(historySimVertices);
+			history_data.fill_history_var();
 
 			auto trackHistoryRecorder = TrackHistoryRecorder::GetInstance();
 			std::vector<SimTrack> simTracks_;
@@ -339,8 +361,10 @@ void EventAction::EndOfEventAction(const G4Event *evt)
 				simTracks_.push_back(simTrack);
 				simVertices_.push_back(simVertex);
 			}
-
+			trackInfo.clear();
 			std::vector<SimShower> simShowers_;
+			int n_parents = 0;
+			std::unordered_map<int, int> parentIdx2Number;
 			for (int i = 0; i < cells_data_low.Cells_in_topoclusters.size(); i++)
 			{
 				Cell *local_cell = cells_data_low.Cells_in_topoclusters.at(i);
@@ -348,15 +372,24 @@ void EventAction::EndOfEventAction(const G4Event *evt)
 				for (auto& parent : local_cell->get_parent_idx())
 				{
 					int parent_idx = parent;
-					if (parent_idx >= simShowers_.size())
-						simShowers_.resize(parent_idx + 1);
-
-					float parent_energy_in_hit = local_cell->get_parent_efrac(parent_idx);
-					simShowers_[parent_idx].AddHit(local_cell, parent_energy_in_hit, i);
-					simShowers_[parent_idx].SetPDGID(local_cell->get_parent_pdg_id(parent_idx));
+					auto parent_it = parentIdx2Number.find(parent_idx);
+					if (parent_it == parentIdx2Number.end()) {
+						parentIdx2Number.emplace(std::make_pair(parent_idx, n_parents));
+						simShowers_.resize(n_parents + 1);
+						float parent_energy_in_hit = local_cell->get_parent_efrac(parent_idx);
+						simShowers_[n_parents].AddHit(local_cell, parent_energy_in_hit, i);
+						simShowers_[n_parents].SetPDGID(local_cell->get_parent_pdg_id(parent_idx));
+						n_parents++;
+						continue;
+					} else {
+						int parent = parent_it->second;
+						float parent_energy_in_hit = local_cell->get_parent_efrac(parent_idx);
+						simShowers_[parent].AddHit(local_cell, parent_energy_in_hit, i);
+						continue;
+					}
 				}
 			}
-
+			parentIdx2Number.clear();
 			for (auto& shower : simShowers_) {
 				shower.CalculateBarycenter();
 			}
@@ -375,5 +408,7 @@ void EventAction::EndOfEventAction(const G4Event *evt)
 
 	runAction->outTree_low->Fill();
 	truth_record_graph.clear();
+	historyTool_->clear();
+	caloEventAction_->SetNParticlesInEvent(-1);
 
 }

@@ -12,6 +12,7 @@ TrackHistoryRecorder* TrackHistoryRecorder::Instance = nullptr;
 void TrackHistoryRecorder::RecordStep(std::vector<SimVertex>& simVertices,
                                       const G4Step* step) {
 
+  /*
   G4TouchableHandle touch = step->GetPreStepPoint()->GetTouchableHandle();
   G4LogicalVolume* lvol = touch->GetVolume()->GetLogicalVolume();
 
@@ -42,7 +43,7 @@ void TrackHistoryRecorder::RecordStep(std::vector<SimVertex>& simVertices,
   std::cout << __FILE__ << " " << __LINE__ << std::endl;
   G4PrimaryParticleInfos& primaryParticleInfos = trackEventAction->getPrimaryParticleInfos();
   std::cout << __FILE__ << " " << __LINE__ << std::endl;
-  /*if (trackIdToPrimary.find(track->GetTrackID()) == trackIdToPrimary.end()) {
+  if (trackIdToPrimary.find(track->GetTrackID()) == trackIdToPrimary.end()) {
     std::cout << __FILE__ << " " << __LINE__ << std::endl;
     std::vector<int> primaryIDs = primaryParticleInfos.primaryParticleTrackID;
     std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -69,7 +70,7 @@ void TrackHistoryRecorder::RecordStep(std::vector<SimVertex>& simVertices,
       std::cout << __FILE__ << " " << __LINE__ << std::endl;
     }
     std::cout << __FILE__ << " " << __LINE__ << std::endl;
-  }*/
+  }
   std::cout << __FILE__ << " " << __LINE__ << std::endl;
   
 
@@ -95,5 +96,5 @@ void TrackHistoryRecorder::RecordStep(std::vector<SimVertex>& simVertices,
   trackEventAction->stashVertex(simVertex);
 
   //verticesStack.push_back(simVertex);
-  return;
+  return;*/
 }

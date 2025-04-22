@@ -11,6 +11,8 @@ void CaloEventAction::BeginOfCaloEventAction() {
   total_deposit_energy = 0.f;
   particles_soa.clear();
   n_particles = -1;
+  n_particles_in_event = 0;
+  tracksFromBackscattering.clear();
 }
 
 void CaloEventAction::AccumulateStepData(const G4Step *step) {
@@ -27,48 +29,25 @@ void CaloEventAction::AccumulateStepData(const G4Step *step) {
   int particle_index = -1;
   int parent_idx = -1;
 
-  /*std::vector<std::pair<int, int>>& trackid_to_idx = particles_soa.trackid_to_idx;
-  auto it = std::find_if(trackid_to_idx.begin(), trackid_to_idx.end(),
-      [&](std::pair<int, int>& pair) { return pair.first == track->GetTrackID(); });
-  auto parent_it = std::find_if(trackid_to_idx.begin(), trackid_to_idx.end(),
-      [&](std::pair<int, int>& pair) { return pair.first == track->GetParentID(); });
-  */
-
   if (particles_soa.trackid_to_idx.find(track->GetParentID()) != particles_soa.trackid_to_idx.end()) {
-//  if (parent_it != trackid_to_idx.end() and step->GetTotalEnergyDeposit() > 0.f) {
-    //parent_idx = particles_soa.particles_parent_idx[parent_it->first];
-    //parent_idx = parent_it->second;
     parent_idx = particles_soa.trackid_to_idx[track->GetParentID()];
-    if (parent_idx >= 0) {
-      std::cout << __FILE__ << " " << __LINE__ << std::endl;
-      std::cout << "parent_idx: " << parent_idx << std::endl;
-      std::cout << "Track total deposited energy: " << step->GetTotalEnergyDeposit() << std::endl;
-      std::cout << "Track Kinetic energy: " << track->GetKineticEnergy() << std::endl;
-    }
   }
 
-  //if (particles_soa.trackid_to_idx.find(track->GetParentID()) != particles_soa.trackid_to_idx.end()) {
-  //  parent_idx = particles_soa.trackid_to_idx[track->GetParentID()];
-  //}
   G4TouchableHandle touch = preStepPoint->GetTouchableHandle();
+  G4TouchableHandle touch2 = postStepPoint->GetTouchableHandle();
   G4LogicalVolume *volume = touch->GetVolume()->GetLogicalVolume();
+  G4LogicalVolume *volume2 = touch2->GetVolume()->GetLogicalVolume();
   std::string volume_name = touch->GetVolume()->GetName();
-  bool isCrossing = volume_name.substr(1, 3) != "CAL";
-  bool isECAL = volume_name.substr( 0, 1 ) == "E";
+  std::string volume_name2 = touch2->GetVolume()->GetName();
+  bool isOutside = (volume_name.substr(1,3) != "CAL") and (volume_name2.substr(1,3) != "CAL");
+  if (isOutside) return;
+  bool isCrossing = (volume_name.substr(1, 3) != "CAL") and (volume_name2.substr(1,3) == "CAL") ;
   bool catch_position = false;
-  //if (it == trackid_to_idx.end()) {
   if (particles_soa.trackid_to_idx.find(track->GetTrackID()) == particles_soa.trackid_to_idx.end()) {
-    //particle_index = (int)particles_soa.particles_vertex_position_x.size();
-    if (isCrossing) { 
-      //std::cout << __FILE__ << " " << __LINE__ << std::endl;
-      //std::cout << "PDG ID: " << track->GetParticleDefinition()->GetPDGEncoding() << std::endl;
-    //if (pos1.z() < limit) {
+    if (isCrossing) {
       particle_index = (int)particles_soa.particles_vertex_position_x.size();
       tracks_stack[track->GetTrackID()] = particle_index;
-      std::cout<<"-1- Inserting " << particle_index<<" with parent "<<parent_idx<<" and energy "<<track->GetKineticEnergy()/1000<<" GeV and pdgid "<< track->GetParticleDefinition()->GetPDGEncoding()<<std::endl;
-      std::cout << "Eta: " << track->GetVertexMomentumDirection().eta() << std::endl;
-      std::cout << "Phi: " << track->GetVertexMomentumDirection().phi() << std::endl;
-      std::cout << "track->GetParentID(): " << track->GetParentID() << std::endl;
+      parent_idx = track->GetParentID(); 
       particles_soa.add(
         pos1.x(),
         pos1.y(),
@@ -80,25 +59,16 @@ void CaloEventAction::AccumulateStepData(const G4Step *step) {
         track->GetParticleDefinition()->GetPDGEncoding(),
         track->GetTrackID(),
         true,
-        //parent_idx
         track->GetTrackID() // we care about the particle that crossed the boundary (i.e. this one)
       );
       catch_position = true;
       n_particles++;
     }
   } else {
-    //std::cout << __FILE__ << " " << __LINE__ << std::endl;
     particle_index = particles_soa.trackid_to_idx[track->GetTrackID()];
     catch_position = true;
-    //particle_index = it->second;
-    //std::cout << "Found track: " << track->GetTrackID() << " from particle: " << particle_index << std::endl;
-    //std::cout << __FILE__ << " " << __LINE__ << std::endl;
     if (step->GetTotalEnergyDeposit() != 0) {
-      //std::cout << __FILE__ << " " << __LINE__ << std::endl;
-      //std::cout << "particle_index = " << particle_index << std::endl;
-      //std::cout << "particles_first_impact_kinetic_energy.size(): " << particles_soa.particles_first_impact_kinetic_energy.size() << std::endl;
       if (particles_soa.particles_first_impact_kinetic_energy[particle_index] == -1) {
-        //std::cout << "HERE" << std::endl;
         particles_soa.particles_first_impact_kinetic_energy[particle_index] = track->GetKineticEnergy() / 1000.f;
       }
     }
@@ -159,4 +129,5 @@ void CaloEventAction::EndOfCaloEventAction() {
       std::cerr << "Error: SimCluster already exists for parent ID " << parentID << std::endl;
     }
   }
+  tracksFromBackscattering.clear();
 }

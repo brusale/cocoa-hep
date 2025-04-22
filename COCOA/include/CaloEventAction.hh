@@ -28,6 +28,11 @@ class CaloEventAction {
 
     void AccumulateStepData(const G4Step*);
 
+    int& GetNParticlesInEvent() { return n_particles_in_event; }
+    void SetNParticlesInEvent(int n) { n_particles_in_event = n; }
+
+    std::vector<int>& GetTracksFromBackscattering() { return tracksFromBackscattering; }
+
   private:
     std::vector<int> parentIDs_; // size: number of tracks; entry i: parent ID of track i
     std::vector<float> totDepEne_; // size: number of tracks; entry i: total deposited energy of track i
@@ -42,6 +47,9 @@ class CaloEventAction {
     std::unordered_map<int, int> tracks_stack;
 
     std::unordered_map<int, int> trackId2Particle;
+
+    std::vector<int> tracksFromBackscattering;
+    int n_particles_in_event = 0;
 };
 
 #endif

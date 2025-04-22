@@ -64,6 +64,7 @@
 #include "SimShowersData.hh"
 #include "SimVerticesData.hh"
 #include "SimTracksData.hh"
+#include "HistoryData.hh"
 using namespace std;
 
 class G4Run;

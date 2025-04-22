@@ -42,6 +42,7 @@
 #include <math.h>
 #include <string>
 #include <algorithm>
+#include "HistoryTool.hh"
 
 char* SteppingAction::Name_creation(char *name, int low_layer, int high_layer)
 {
@@ -183,6 +184,8 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 
 	auto trackHistoryRecorder = TrackHistoryRecorder::GetInstance();
 	auto& trackInfo = trackHistoryRecorder->GetTrackInfo();
+	auto historyTool = HistoryTool::GetInstance();
+	historyTool->AddStep(aTrack);
 
 	bool isCalo = volume_name.substr(1, 3) == "CAL";
 	bool isCalo_post = (volume_name_post.substr(1, 3) == "CAL" && volume_name_post.substr(0, 1) != "H");
@@ -198,9 +201,21 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 		bool is_barrel = abs(pos.eta()) < 1.5;
 		return (is_barrel) ? (static_cast<float>(pos.r()) >= 1500.f) : (abs(pos.z()) >= 3193.92);
 	};
+
+	//bool hasBackscattered = (isCalo && !isCalo_post);
+	bool hasBackscattered = (inCalo(PreStepPoint) && !inCalo(PostStepPoint));
+	std::vector<int>& tracksFromBackscattering = caloEventAction_->GetTracksFromBackscattering();
+	auto isParentFromBackscattering = std::find(tracksFromBackscattering.begin(), tracksFromBackscattering.end(), ParentID);
+	bool isFromBackscattering = false;
+	if (hasBackscattered || isParentFromBackscattering != tracksFromBackscattering.end()) {
+		isFromBackscattering = true;
+		tracksFromBackscattering.push_back(trackID);
+	}
+	bool is_back_scattering = false;
 	int& n_particles = caloEventAction_->GetNParticlesInEvent();
 	if (std::find(trackInfo.TrackID.begin(), trackInfo.TrackID.end(), trackID) == trackInfo.TrackID.end())	
-		trackInfo.add(trackID, ParentID, is_crossing, inCalo(PreStepPoint), n_particles, trackPdgId, aTrack, astep);
+		trackInfo.Add(trackID, ParentID, is_crossing, inCalo(PreStepPoint), n_particles, trackPdgId, aTrack, astep, isFromBackscattering);
+		//trackInfo.add(trackID, ParentID, is_crossing, inCalo(PreStepPoint), n_particles, trackPdgId, aTrack, astep, isFromBackscattering);
 	
 	if (isCalo) {
 	    
@@ -407,13 +422,14 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 			{
 
 				auto& parentAtBoundary = trackInfo.ParentAtBoundaryID;
-				auto& trackPdgId = trackInfo.TrackPdgId;
+				auto& trackPdgID = trackInfo.TrackPdgId;
 				auto trackInfo_it = std::find(trackInfo.TrackID.begin(), trackInfo.TrackID.end(), trackID);
 				if (trackInfo_it != trackInfo.TrackID.end()) {
 					int trackInfo_idx = std::distance(trackInfo.TrackID.begin(), trackInfo_it);
 					cell_parent = parentAtBoundary[trackInfo_idx];
-					if (cell_parent == -1 || cell_parent == 0) return;
-					pdg_id = trackPdgId[cell_parent-1];
+					if (cell_parent == -1) return; // || cell_parent == 0) return;
+					pdg_id = trackPdgID[trackInfo_idx]; //-1];
+					//pdg_id = trackPdgID[cell_parent]; //-1];
 				}
 
 				Etot = Ech + Enu;

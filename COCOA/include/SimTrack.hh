@@ -10,7 +10,7 @@ class SimTrack {
     SimTrack(uint32_t trackID, int parentID, int particleID, int simVertexID, G4ThreeVector momentum, G4ThreeVector trackXYZ, int charge) :
       trackID_(trackID), parentID_(parentID), particleID_(particleID), simVertexID_(simVertexID), momentum_(momentum), trackXYZ_(trackXYZ), charge_(charge) {}
 
-    uint32_t getTrackID() { return trackID_; };
+    int getTrackID() { return trackID_; };
     int getParentID() { return parentID_; };
     int getParticleID() { return particleID_; };
     int getSimVertexID() { return simVertexID_; };
@@ -24,11 +24,12 @@ class SimTrack {
     void setSimVertexID(int simVertexID) { this->simVertexID_ = simVertexID; }
     void setMomentum(G4ThreeVector momentum) { this->momentum_ = momentum; }
 
+    G4ThreeVector GetPosition() { return trackXYZ_; }
     bool operator==(const SimTrack& other) const { return trackID_ == other.trackID_; }
 
 
   private:
-    uint32_t trackID_; // from G4
+    int trackID_; // from G4
     int parentID_; // ID of the parent track
     int particleID_; // PDG code of the particle
     int simVertexID_; // ID of the vertex created by this track
