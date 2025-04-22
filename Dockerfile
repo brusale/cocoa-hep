@@ -8,18 +8,23 @@ WORKDIR ${WKDIR}
 ##########
 # Basics #
 ##########
-
-RUN yum -y install which wget tar devtoolset-8-gcc-c++ make cmake3 git mesa-libGL-devel libXmu-devel expat-devel && \
+RUN yum-config-manager --disable epel 
+RUN yum -y install epel-release
+#RUN yum -y install which wget tar devtoolset-8-gcc-c++ make cmake cmake3 git mesa-libGL-devel libXmu-devel expat-devel && \
+RUN yum -y install which wget tar devtoolset-8-gcc-c++ make git mesa-libGL-devel libXmu-devel expat-devel openssl-devel gdb && \
     yum group install -y "X Window System" && \
     yum clean all
-RUN ln -s -f /usr/bin/cmake3 /usr/bin/cmake
+#RUN ln -s -f /usr/bin/cmake3 /usr/bin/cmake
 ENV DEVTOOLS_BINDIR=/opt/rh/devtoolset-8/root/usr/bin
 RUN ln -s -f ${DEVTOOLS_BINDIR}/g++ /usr/bin/g++
 RUN ln -s -f ${DEVTOOLS_BINDIR}/gcc /usr/bin/gcc
 RUN ln -s -f ${DEVTOOLS_BINDIR}/ld /usr/bin/ld
 ENV CC=/opt/rh/devtoolset-8/root/usr/bin/gcc
 ENV CXX=/opt/rh/devtoolset-8/root/usr/bin/g++
-
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.30.2/cmake-3.30.2.tar.gz 
+RUN tar -xzf cmake-3.30.2.tar.gz
+RUN ls -altr . 
+RUN cd ${WKDIR}/cmake-3.30.2 && ls && ./bootstrap && make -j 4 && make install
 
 #########
 # HEPMC #
@@ -60,6 +65,14 @@ RUN cd fastjet-${FASTJET_VERSION} && \
 # JSONCPP #
 ###########
 
+RUN mkdir /etc/yum.repos.d/old
+RUN mv /etc/yum.repos.d/CentOS*.repo /etc/yum.repos.d/old/
+RUN mv /etc/yum.repos.d/epel*.repo /etc/yum.repos.d/old/
+
+WORKDIR /usr/src/app
+COPY ./*.repo /etc/yum.repos.d/
+WORKDIR ${WKDIR}
+RUN yum -y update && yum clean all
 RUN yum -y install jsoncpp-devel
 RUN cp -r /usr/include/jsoncpp/json /usr/include
 
@@ -74,6 +87,7 @@ RUN cd ${WKDIR}
 RUN wget https://pythia.org/download/pythia83/pythia${PYTHIA_VERSION}.tgz && \
     tar -xzf pythia${PYTHIA_VERSION}.tgz
 ENV PYTHIA8_HOME=${WKDIR}/pythia${PYTHIA_VERSION}
+RUN pwd && ls
 RUN cd ${PYTHIA8_HOME} && \
     make -j4
 
@@ -113,7 +127,7 @@ RUN sed -i 's/GEANT4_USE_OPENGL_X11 "Build Geant4 OpenGL driver with X11 support
 ENV G4_BuildDir=${WKDIR}/g4_build
 RUN mkdir ${G4_BuildDir} && \
     cd ${G4_BuildDir} && \
-    cmake ${WKDIR}/geant4.10.07.p03 && \
+    cmake ${WKDIR}/geant4.10.07.p03 -DGEANT4_BUILD_MULTITHREADED=ON && \
     make -j4
 RUN rm -rf ${Geant4_DIR}/lib64/*.so*
 RUN cp -r ${G4_BuildDir}/BuildProducts/lib64/* ${Geant4_DIR}/lib64/
@@ -183,4 +197,7 @@ RUN ln -s -f /usr/lib64/libGL.so.1 /usr/lib64/libGL.so && \
     ln -s -f /usr/lib64/libexpat.so.1 /usr/lib64/libexpat.so && \
     for libTag in Xmu ICE Xext X11 Xt SM; do ln -s -f /usr/lib64/lib${libTag}.so.6 /usr/lib64/lib${libTag}.so; done
 RUN cd ${COCOA_BUILD_DIR} && \
-    make -j4
+    make -j1
+RUN cd ${WKDIR}/COCOA && chmod +x run_test.sh && chmod +x run_cocoa_job.sh
+RUN chmod 777 ${WKDIR} && chmod -R 777 ${WKDIR}/COCOA/COCOA/
+RUN chmod 777 ${WKDIR}/COCOA 
