@@ -11,6 +11,22 @@
 #include "Config_reader_var.hh"
 
 #include <vector>
+#include <unordered_map>
+#include <utility>
+
+struct CellCoordinates {
+    CellCoordinates(int ilayer, int ieta, int iphi) {
+        layer = ilayer;
+        eta = ieta;
+        phi = iphi;
+    }
+
+    CellCoordinates() : layer(-1), eta(-1), phi(-1) {}
+
+    int layer;
+    int eta;
+    int phi;
+};
 
 class CalorimeterConstruction {
 
@@ -19,15 +35,26 @@ class CalorimeterConstruction {
         ~CalorimeterConstruction();
         void EndCap_Calorimeter();
         void Barrel_Calorimeter();
-        void Build_Barrel_CAL ( int NumberOfPixel, int cellMergeFactor,
+        void Build_Barrel_CAL ( int iLayer, int NumberOfPixel, int cellMergeFactor,
 				long double d_eta, long double d_phi, 
                                 long double r_inn, long double r_out, long double previous_layers_delta_r,
                                 G4Material *Material_CAL, G4VisAttributes* VisAtt, 
                                 const char *LV,  const char *PL, int direction);
-        void Build_EndCap_CAL( int NumberOfPixel, int cellMergeFactor, long double d_phi, 
+        void Build_EndCap_CAL( int iLayer, int NumberOfPixel, int cellMergeFactor, long double d_phi, 
 			       long double r_inn_barrel, long double depth, long double previous_layers_depths,
 			       G4Material *Material_CAL, G4VisAttributes* VisAtt, 
 			       const char *LV,  const char *PL, int direction );
+
+        std::unordered_map<G4LogicalVolume*, std::vector<std::pair<int, CellCoordinates>>> GetCellsMap() const {
+            return cells_map_;
+        }
+        //std::unordered_map<G4LogicalVolume*, std::vector<std::pair<int, int*>>>& GetCellsMap() {
+        //    return cells_map_;
+        //}
+
+        //int *CellIndex(const char* cellName , double XPos, double YPos, double ZPos);
+        CellCoordinates CellIndex(const char* cellName, double XPos, double YPos, double ZPos);
+
     private:
         char* Name_creation(char *name, int low_layer, int high_layer);
         template <typename T>
@@ -61,6 +88,9 @@ class CalorimeterConstruction {
         new G4VisAttributes(true, G4Colour(255, 0, 0));
         G4VisAttributes* IronGap_VisAtt=
         new G4VisAttributes(true, G4Colour(255, 255, 255));
+
+        //std::unordered_map<G4LogicalVolume*, std::vector<std::pair<int, int*>>> cells_map_;
+        std::unordered_map<G4LogicalVolume*, std::vector<std::pair<int, CellCoordinates>>> cells_map_;
 };
 
 

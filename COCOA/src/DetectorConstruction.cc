@@ -134,6 +134,7 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
 		fCheckOverlaps);
 
 	CalorimeterConstruction Calorimeter(expHallLV, fCheckOverlaps, geometry);
+	cells_map_ = Calorimeter.GetCellsMap();
 	InnerConstruction       InnerDetector(expHallLV, defaultMaterial, iron, elSi, fCheckOverlaps);
 	return expHall;
 }

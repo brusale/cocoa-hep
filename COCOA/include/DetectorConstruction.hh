@@ -39,6 +39,10 @@
 #include "CalorimeterConstruction.hh"
 #include "InnerConstruction.hh"
 
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 class G4VPhysicalVolume;
 class G4GlobalMagFieldMessenger;
 
@@ -62,10 +66,22 @@ public:
 	void Build_Iron_Gap_legacy(G4LogicalVolume *expHallLV);
 	long double theta_min;
 
+	std::unordered_map<G4LogicalVolume *, std::vector<std::pair<int, CellCoordinates>>>& GetCellsMap() 
+	{
+		return cells_map_;
+	}
+	//std::unordered_map<G4LogicalVolume *, std::vector<std::pair<int, int *>>> &GetCellsMap()
+	//{
+	//	return cells_map_;
+	//}
+
 private:
 	// G4VPhysicalVolume*   fGapPV;      // the gap physical volume
 	Geometry_definition geometry;
 	G4bool fCheckOverlaps; // option to activate checking of volumes overlaps
+
+	std::unordered_map<G4LogicalVolume *, std::vector<std::pair<int, CellCoordinates>>> cells_map_;
+	//std::unordered_map<G4LogicalVolume *, std::vector<std::pair<int, int*>>> cells_map_;
 };
 
 #endif

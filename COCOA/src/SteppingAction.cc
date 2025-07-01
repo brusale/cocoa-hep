@@ -52,7 +52,8 @@ char* SteppingAction::Name_creation(char *name, int low_layer, int high_layer)
 }
 SteppingAction::SteppingAction(TrackHistoryRecorder* trackHistoryRecorder,  CaloHistoryRecorder* caloHistoryRecorder,
 															 TrackEventAction* trackEventAction, CaloEventAction* caloEventAction, 
-															 Geometry_definition& Geometry) : G4UserSteppingAction()
+															 Geometry_definition& Geometry, std::unordered_map<G4LogicalVolume*, std::vector<std::pair<int, CellCoordinates>>>& cells_map)
+															 : G4UserSteppingAction()
 {
 
   trackHistoryRecorder_ = trackHistoryRecorder;
@@ -69,6 +70,7 @@ SteppingAction::SteppingAction(TrackHistoryRecorder* trackHistoryRecorder,  Calo
 		cone_min_length_flatten.at(ilow_layer) = geometry_.layer_inn_radius_flatten.at(ilow_layer) / tan(theta_min);
 		cone_max_length_flatten.at(ilow_layer) = geometry_.layer_out_radius_flatten.at(ilow_layer) / tan(theta_min);
 	}
+	cells_map_ = cells_map;
 }
 
 SteppingAction::~SteppingAction()
@@ -185,7 +187,7 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 	auto trackHistoryRecorder = TrackHistoryRecorder::GetInstance();
 	auto& trackInfo = trackHistoryRecorder->GetTrackInfo();
 	auto historyTool = HistoryTool::GetInstance();
-	historyTool->AddStep(aTrack);
+	//historyTool->AddStep(aTrack);
 
 	bool isCalo = volume_name.substr(1, 3) == "CAL";
 	bool isCalo_post = (volume_name_post.substr(1, 3) == "CAL" && volume_name_post.substr(0, 1) != "H");
@@ -213,7 +215,8 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 	}
 	bool is_back_scattering = false;
 	int& n_particles = caloEventAction_->GetNParticlesInEvent();
-	if (std::find(trackInfo.TrackID.begin(), trackInfo.TrackID.end(), trackID) == trackInfo.TrackID.end())	
+	//if (trackInfo.TrackID.find(trackID) == trackInfo.TrackID.end())	
+	if (isCalo && std::find(trackInfo.TrackID.begin(), trackInfo.TrackID.end(), trackID) == trackInfo.TrackID.end())	
 		trackInfo.Add(trackID, ParentID, is_crossing, inCalo(PreStepPoint), n_particles, trackPdgId, aTrack, astep, isFromBackscattering);
 		//trackInfo.add(trackID, ParentID, is_crossing, inCalo(PreStepPoint), n_particles, trackPdgId, aTrack, astep, isFromBackscattering);
 	
@@ -362,11 +365,55 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 
 	        std::string vol_name = touch1->GetVolume()->GetName();
 					//bool isCalo = vol_name.substr(1, 3) == "CAL";
-	        int *Bin = CellIndex( vol_name.c_str(),
-						     PreStepPoint.x(),
-						     PreStepPoint.y(),
-						     PreStepPoint.z());
+	        //int *Bin = CellIndex( vol_name.c_str(),
+					//	     PreStepPoint.x(),
+					//	     PreStepPoint.y(),
+					//	     PreStepPoint.z());
 
+					/*auto vol_it = cells_map_.find(touch1->GetVolume()->GetLogicalVolume());
+					if (vol_it != cells_map_.end()) {
+						auto& cells = vol_it->second;
+						int copy_number = touch1->GetCopyNumber();
+						auto cell_it = std::find_if(cells.begin(), cells.end(),
+							[copy_number](const std::pair<int, CellCoordinates>& cell) {
+								return cell.first == copy_number;
+							});
+						if (cell_it != cells.end()) {
+							CellCoordinates cell_bin = cell_it->second;
+							// Found the cell with the matching copy number
+							std::cout << "Found cell with copy number: " << copy_number << std::endl;
+							std::cout << "Cell coordinates: (" <<
+									 cell_bin.layer << ", " <<
+									 cell_bin.eta << ", " <<
+									 cell_bin.phi << ")" << std::endl;
+							std::cout << "Cell index: (" 
+								<< Bin[0] << ", " 
+								<< Bin[1] << ", " 
+								<< Bin[2] << ")" << std::endl;
+							std::cout << "Position: (" 
+								<< PreStepPoint.x() << ", " 
+								<< PreStepPoint.y() << ", " 
+								<< PreStepPoint.z() << ", "
+								<< PreStepPoint.eta() << ", "
+								<< PreStepPoint.phi() << ")" << std::endl;
+							std::cout << "Volume name: " << vol_name.c_str() << std::endl;
+						}
+					}*/
+				CellCoordinates cell_coordinates;
+				auto vol_it = cells_map_.find(touch1->GetVolume()->GetLogicalVolume());
+				if (vol_it != cells_map_.end()) {
+					auto& cells = vol_it->second;
+					int copy_number = touch1->GetCopyNumber();
+					auto cell_it = std::find_if(cells.begin(), cells.end(),
+						[copy_number](const std::pair<int, CellCoordinates>& cell) {
+							return cell.first == copy_number;
+						});
+					if (cell_it != cells.end()) {
+						// Found the cell with the matching copy number
+						cell_coordinates = cell_it->second;
+					}
+				} 
+								
 		G4double Charge = trajectories.fAllTrajectoryInfo.at(mTraj).fPDGCharge;
 		G4double Etot(0), Ech(0.), Enu(0.); //, EHadCh(0.), EHadNu(0.), EEM(0.);
 		if (Charge == 0)					//|| (abs(trajectories.fAllTrajectoryInfo[mTraj].fPDGCode)==11)
@@ -416,9 +463,14 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 
 		int cell_parent = -1;
 		int pdg_id = 0;
-		if ((*Bin >= 0 && *Bin < geometry_.kNLayers))
+		int ilayer = cell_coordinates.layer;
+		int ieta = cell_coordinates.eta;
+		int iphi = cell_coordinates.phi;
+		//if ((*Bin >= 0 && *Bin < geometry_.kNLayers))
+		if ((ilayer >= 0 && ilayer < geometry_.kNLayers))
 		{
-			if ((*(Bin + 1) >= 0 && *(Bin + 1) < geometry_.number_of_pixels_flatten.at(*Bin)) && (*(Bin + 2) >= 0 && *(Bin + 2) < geometry_.number_of_pixels_flatten.at(*Bin)))
+			//if ((*(Bin + 1) >= 0 && *(Bin + 1) < geometry_.number_of_pixels_flatten.at(*Bin)) && (*(Bin + 2) >= 0 && *(Bin + 2) < geometry_.number_of_pixels_flatten.at(*Bin)))
+			if ((ieta >= 0 && ieta < geometry_.number_of_pixels_flatten.at(ilayer)) && (iphi >= 0 && iphi < geometry_.number_of_pixels_flatten.at(ilayer)))
 			{
 
 				auto& parentAtBoundary = trackInfo.ParentAtBoundaryID;
@@ -444,12 +496,14 @@ void SteppingAction::UserSteppingAction(const G4Step *astep)
 				if (config_json_var.Use_high_granularity)
 				{
 					Cells_data &cells_data = Cells_data::GetHigh();
-					cells_data.add_cell_info(*Bin, *(Bin + 1), *(Bin + 2), Ech / samplingFraction, Enu / samplingFraction, cell_parent, pdg_id, ptrc, conv_el);
+					//cells_data.add_cell_info(*Bin, *(Bin + 1), *(Bin + 2), Ech / samplingFraction, Enu / samplingFraction, cell_parent, pdg_id, ptrc, conv_el);
+					cells_data.add_cell_info(ilayer, ieta, iphi, Ech / samplingFraction, Enu / samplingFraction, cell_parent, pdg_id, ptrc, conv_el);
 				}
 				else
 				{
 					Cells_data &cells_data = Cells_data::GetLow();
-					cells_data.add_cell_info(*Bin, *(Bin + 1), *(Bin + 2), Ech / samplingFraction, Enu / samplingFraction, cell_parent, pdg_id, ptrc, conv_el);
+					//cells_data.add_cell_info(*Bin, *(Bin + 1), *(Bin + 2), Ech / samplingFraction, Enu / samplingFraction, cell_parent, pdg_id, ptrc, conv_el);
+					cells_data.add_cell_info(ilayer, ieta, iphi, Ech / samplingFraction, Enu / samplingFraction, cell_parent, pdg_id, ptrc, conv_el);
 				}
 			}
 			// runData->AddCaloCell(*Bin, *(Bin+1), *(Bin+2), Ech, Enu, ptrc);

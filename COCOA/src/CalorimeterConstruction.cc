@@ -83,13 +83,13 @@ void CalorimeterConstruction::EndCap_Calorimeter()
 		for (int ihigh_layer = 0; ihigh_layer < nHigh_Layers; ihigh_layer++)
 		{
 		    depth = geometry.layer_out_radius_ECAL[ilow_layer][ihigh_layer] - geometry.layer_inn_radius_ECAL[ilow_layer][ihigh_layer];
-		    Build_EndCap_CAL( nPixelsMax,
+		    Build_EndCap_CAL( ilow_layer, nPixelsMax,
 				      nPixelsMax / geometry.number_of_pixels_ECAL[ilow_layer][ihigh_layer],
 				      minDPhi,
 				      r_inn, depth, previous_layers_depths, config_json_var.Material_ECAL, ECAL1_VisAtt,
 				      Name_creation(strdup("ECALN_N_Endcap_forward_LV"), ilow_layer, ihigh_layer),
 				      Name_creation(strdup("ECALN_N_Endcap_forward_PL"), ilow_layer, ihigh_layer), 1 );
-		    Build_EndCap_CAL( nPixelsMax,
+		    Build_EndCap_CAL( ilow_layer, nPixelsMax,
 		    		      nPixelsMax / geometry.number_of_pixels_ECAL[ilow_layer][ihigh_layer],
 		    		      minDPhi,
 		    		      r_inn, depth, previous_layers_depths, config_json_var.Material_ECAL, ECAL1_VisAtt,
@@ -107,7 +107,7 @@ void CalorimeterConstruction::EndCap_Calorimeter()
 	    std::make_pair(1, "forward")
 	};
 	for( auto dir_str : direction_name ) {
-	    Build_EndCap_CAL( nPixelsMax,
+	    Build_EndCap_CAL( -1, nPixelsMax,
 			      1,
 			      minDPhi,
 			      r_inn,
@@ -130,13 +130,13 @@ void CalorimeterConstruction::EndCap_Calorimeter()
 		for (int ihigh_layer = 0; ihigh_layer < nHigh_Layers; ihigh_layer++)
 		{
 			depth = geometry.layer_out_radius_HCAL[ilow_layer][ihigh_layer] - geometry.layer_inn_radius_HCAL[ilow_layer][ihigh_layer];
-			Build_EndCap_CAL( nPixelsMax,
+			Build_EndCap_CAL( ilow_layer+nLow_Layers, nPixelsMax,
 					  nPixelsMax / geometry.number_of_pixels_HCAL[ilow_layer][ihigh_layer],
 					  minDPhi,
 					  r_inn, depth, previous_layers_depths, config_json_var.Material_HCAL, HCAL1_VisAtt,
 					  Name_creation(strdup("HCALN_N_Endcap_forward_LV"), ilow_layer, ihigh_layer), 
 					  Name_creation(strdup("HCALN_N_Endcap_forward_PL"), ilow_layer, ihigh_layer), 1 );
-			Build_EndCap_CAL( nPixelsMax,
+			Build_EndCap_CAL( ilow_layer+nLow_Layers, nPixelsMax,
 					  nPixelsMax / geometry.number_of_pixels_HCAL[ilow_layer][ihigh_layer],
 					  minDPhi,
 					  r_inn, depth, previous_layers_depths, config_json_var.Material_HCAL, HCAL1_VisAtt, 
@@ -170,14 +170,14 @@ void CalorimeterConstruction::Barrel_Calorimeter()
 			r_inn = geometry.layer_inn_radius_ECAL[ilow_layer][ihigh_layer];
 			r_out = geometry.layer_out_radius_ECAL[ilow_layer][ihigh_layer];
 			
-			Build_Barrel_CAL(nPixelsMax,
+			Build_Barrel_CAL(ilow_layer, nPixelsMax,
 					 nPixelsMax / geometry.number_of_pixels_ECAL[ilow_layer][ihigh_layer],
 					 minDEta,
 					 minDPhi,
 					 r_inn, r_out, previous_layers_delta_r, config_json_var.Material_ECAL, ECAL1_VisAtt,
 					 Name_creation(strdup("ECALN_N_forward_LV"), ilow_layer, ihigh_layer), 
 					 Name_creation(strdup("ECALN_N_forward_PL"), ilow_layer, ihigh_layer), 1);
-			Build_Barrel_CAL(nPixelsMax,
+			Build_Barrel_CAL(ilow_layer, nPixelsMax,
 					 nPixelsMax / geometry.number_of_pixels_ECAL[ilow_layer][ihigh_layer],
 					 minDEta,
 					 minDPhi,
@@ -198,7 +198,7 @@ void CalorimeterConstruction::Barrel_Calorimeter()
 	    std::make_pair(1, "forward")
 	};
 	for( auto dir_str : direction_name ) {
-			Build_Barrel_CAL(nPixelsMax,
+			Build_Barrel_CAL(-1, nPixelsMax,
 					 1,
 					 minDEta,
 					 minDPhi,
@@ -226,14 +226,14 @@ void CalorimeterConstruction::Barrel_Calorimeter()
 			r_inn = geometry.layer_inn_radius_HCAL[ilow_layer][ihigh_layer];
 			r_out = geometry.layer_out_radius_HCAL[ilow_layer][ihigh_layer];
 			
-			Build_Barrel_CAL( nPixelsMax,
+			Build_Barrel_CAL( ilow_layer+nLow_Layers, nPixelsMax,
 					  nPixelsMax / geometry.number_of_pixels_HCAL[ilow_layer][ihigh_layer],
 					  minDEta,
 					  minDPhi,
 					  r_inn, r_out, previous_layers_delta_r, config_json_var.Material_HCAL, HCAL1_VisAtt,
 					  Name_creation(strdup("HCALN_N_forward_LV"), ilow_layer, ihigh_layer),
 					  Name_creation(strdup("HCALN_N_forward_PL"), ilow_layer, ihigh_layer), 1 );
-			Build_Barrel_CAL( nPixelsMax,
+			Build_Barrel_CAL( ilow_layer+nLow_Layers, nPixelsMax,
 					  nPixelsMax / geometry.number_of_pixels_HCAL[ilow_layer][ihigh_layer],
 					  minDEta,
 					  minDPhi,
@@ -246,7 +246,7 @@ void CalorimeterConstruction::Barrel_Calorimeter()
 }
 
 
-void CalorimeterConstruction::Build_Barrel_CAL(int NumberOfPixel, int cellMergeFactor, long double d_eta, long double d_phi, long double r_inn, long double r_out, long double previous_layers_delta_r, G4Material *Material_CAL, G4VisAttributes *VisAtt, const char *LV, const char *PL, int direction)
+void CalorimeterConstruction::Build_Barrel_CAL(int iLayer, int NumberOfPixel, int cellMergeFactor, long double d_eta, long double d_phi, long double r_inn, long double r_out, long double previous_layers_delta_r, G4Material *Material_CAL, G4VisAttributes *VisAtt, const char *LV, const char *PL, int direction)
 {
 
     //
@@ -292,7 +292,8 @@ void CalorimeterConstruction::Build_Barrel_CAL(int NumberOfPixel, int cellMergeF
 	std::vector<long double> theta_all( nCellsPerDirection, 0.0); // Angles between the cell z-surface away from the IP and the xy-plane.
 	for (size_t iCell = 0; iCell < nCellsPerDirection; ++iCell)
 	    theta_all[iCell] = 0.5 * M_PI - 2 * atan( exp( -1.0 * ( iCell + 1 ) * d_eta ) );
-	    
+	
+	double r = (r_inn + r_out) / 2.0;
 	for (size_t iCell = 0; iCell < nCellsPerDirection; ++iCell) //*loop that creates detector pixels in positive z direction
 	{
 
@@ -301,6 +302,7 @@ void CalorimeterConstruction::Build_Barrel_CAL(int NumberOfPixel, int cellMergeF
 		    theta_rear          = theta_all[iCell - 1];
 		long double theta_front = theta_all[iCell];
 
+		
 		if ( iCell == 1 )
 		    r_inn = r_inn + previous_layers_delta_r * ( cos( theta_rear ) - 1.0 );
 		if ( iCell > 1 )
@@ -374,12 +376,22 @@ void CalorimeterConstruction::Build_Barrel_CAL(int NumberOfPixel, int cellMergeF
 				index_CAL,										    //* copy number
 				fCheckOverlaps);
 			++index_CAL;
+			double z = r * sinh((iEta+0.5) * d_eta) * direction;
+			double x = r * sin( (angle+0.5) * d_phi);
+			double y = r * cos( (angle+0.5) * d_phi);
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			//std::cout << "CAL LV: " << CAL_LV->GetName() << " index: " << index_CAL << std::endl;
+			//std::cout << "Volume name: " << ( std::string( PL ) + "_" + std::to_string( iEta ) + "_" + std::to_string( iPhi ) ).c_str() << std::endl; 
+			//std::cout << "Coordinates: x: " << x << " y: " << y << " z: " << z << " eta: " << (iEta) * d_eta << " phi: " << angle * d_phi - 2 * M_PI << std::endl;
+			CellCoordinates Bin = CellIndex( ( std::string( PL ) + "_" + std::to_string( iEta ) + "_" + std::to_string( iPhi ) ).c_str(), x, y, z );
+			cells_map_[CAL_LV].push_back(std::make_pair( index_CAL, Bin));
+			//cells_map_[CAL_LV].push_back(std::make_pair( index_CAL, CellCoordinates{ iLayer, iEta, iPhi } ));
 		}
 		CAL_LV->SetVisAttributes(VisAtt);
 	}
 }
 
-void CalorimeterConstruction::Build_EndCap_CAL(int NumberOfPixel, int cellMergeFactor, long double d_phi, long double r_inn_barrel, long double depth, long double previous_layers_depths, G4Material *Material_CAL, G4VisAttributes *VisAtt, const char *LV, const char *PL, int direction)
+void CalorimeterConstruction::Build_EndCap_CAL(int iLayer, int NumberOfPixel, int cellMergeFactor, long double d_phi, long double r_inn_barrel, long double depth, long double previous_layers_depths, G4Material *Material_CAL, G4VisAttributes *VisAtt, const char *LV, const char *PL, int direction)
 {
 
         CheckMergeFactor( NumberOfPixel, cellMergeFactor );
@@ -406,7 +418,8 @@ void CalorimeterConstruction::Build_EndCap_CAL(int NumberOfPixel, int cellMergeF
 	long double              r_low_outer_prime;
 	long double              r_up_outer_prime;
 	long double              Delta_z;
-	
+
+	double r;
 	for( int iCellEta = 0; iCellEta < nCells; ++iCellEta ) {
 	    //
 	    // constructing cells going from highest to lowest eta
@@ -419,7 +432,8 @@ void CalorimeterConstruction::Build_EndCap_CAL(int NumberOfPixel, int cellMergeF
 	    r_up_inner         = lz * tan( theta_up );
 	    r_low_outer_prime  = r_low_inner + ( 2.0 * Delta_z + delta_z_1 ) * tan( theta_low );
 	    r_up_outer_prime   = r_up_inner  + ( 2.0 * Delta_z + delta_z_1 ) * tan( theta_up );
-	    
+
+			r = ( r_low_inner + r_up_inner ) / 2.0;
 	    cell_prime = new G4Cons( "EndcapCell",
 				     direction == 1 ? r_low_inner : r_low_outer_prime,
 				     direction == 1 ? r_up_inner : r_up_outer_prime,
@@ -468,6 +482,15 @@ void CalorimeterConstruction::Build_EndCap_CAL(int NumberOfPixel, int cellMergeF
 				   fCheckOverlaps);
 		endCap_LV_posdir->SetVisAttributes(VisAtt);
 		++index_EndCap;
+		double z = r * sinh(config_json_var.max_eta_barrel + (iEta+0.5) * deltaEta) * direction;
+		double x = r * sin( (iPhi+0.5) * d_phi);
+		double y = r * cos( (iPhi+0.5) * d_phi);
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << "CAL LV: " << CAL_LV->GetName() << " index: " << index_CAL << std::endl;
+		//std::cout << "Volume name: " << ( std::string( PL ) + "_" + std::to_string( iEta ) + "_" + std::to_string( iPhi ) ).c_str() << std::endl; 
+		//std::cout << "Coordinates: x: " << x << " y: " << y << " z: " << z << " eta: " << (iEta) * d_eta << " phi: " << angle * d_phi - 2 * M_PI << std::endl;
+		CellCoordinates Bin = CellIndex( ( std::string( PL ) + "_" + std::to_string( iEta ) + "_" + std::to_string( iPhi ) ).c_str(), x, y, z );
+		cells_map_[endCap_LV_posdir].push_back(std::make_pair( index_EndCap, CellCoordinates{ iLayer, iEta, iPhi } ));
 	    }
 	}
 }
@@ -531,4 +554,89 @@ std::vector<G4VSolid*>* CalorimeterConstruction::MergeCells( std::vector<G4VSoli
 		ptr_cells_final->push_back( cell_merged );
 	    }
     return ptr_cells_final;
+}
+
+CellCoordinates CalorimeterConstruction::CellIndex(const char* cellName, double XPos, double YPos, double ZPos)
+{
+    //
+    // Determine layer, eta and phi indices among the set of low resolution cells.
+    //
+    // For the layer index the cell name is used. It is assumed that this name starts with
+    // ECAL<layer index + 1>_ or HCAL<layer index + 1>_ if the passed named actually belongs to
+    // a calorimeter cell (more precisely, the 'CAL' subtring counts).
+    //
+	int R_Bin(-1), Eta_Bin(-1), Phi_Bin(-1);
+
+	static int ZXYBin[3] = {-1};
+	std::string name = cellName;
+	if ( name.substr( 1, 3 ) != "CAL" ) {
+	    ZXYBin[0] = -1;
+	    ZXYBin[1] = -1;
+	    ZXYBin[2] = -1;
+		  CellCoordinates cellCoordinates;
+			cellCoordinates.layer = -1;
+			cellCoordinates.eta   = -1;
+			cellCoordinates.phi   = -1;
+			return cellCoordinates;	
+	    //return ZXYBin;
+	}
+	
+	int         kFirstUnderscore      = name.find_first_of( "_" );
+	int         nDigitsMainLayerIndex = kFirstUnderscore - 4;
+	std::string nameSubLayerPart      = name.substr( kFirstUnderscore + 1, name.length() - ( kFirstUnderscore + 1 ) );
+	int         nDigistSubLayerIndex  = nameSubLayerPart.find_first_of( "_" );
+
+	int mainLayerIndex = atoi( name.substr( 4, nDigitsMainLayerIndex ).c_str() ) - 1;
+	int subLayerIndex  = atoi( name.substr( 4 + nDigitsMainLayerIndex + 1, nDigistSubLayerIndex ).c_str() ) - 1;
+	R_Bin              = subLayerIndex;
+	//
+	// Now count all previous sublayers and add the result to R_Bin
+	//
+	bool isECAL = true;
+	if ( name.substr( 0, 1 ) == "H" )
+	    isECAL = false;
+
+	
+	for( size_t iMainLayer = 0; iMainLayer < geometry.layer_inn_radius_ECAL.size(); ++iMainLayer ) {
+	    if ( isECAL && iMainLayer == mainLayerIndex )
+				break;
+	    R_Bin += geometry.layer_inn_radius_ECAL[iMainLayer].size();
+	}
+	if ( !isECAL ) {
+	    for( size_t iMainLayer = 0; iMainLayer < geometry.layer_inn_radius_HCAL.size(); ++iMainLayer ) {
+		if ( iMainLayer == mainLayerIndex )
+		    break;
+		R_Bin += geometry.layer_inn_radius_HCAL[iMainLayer].size();
+	    }
+	}
+	
+	double r_sqr = pow(XPos, 2) + pow(YPos, 2);
+
+	double PhiPos = atan2(YPos, XPos);
+	if (PhiPos < 0)
+		PhiPos += config_json_var.max_phi;
+	// Phi_Bin = (int) floor(PhiPos/divided_tube_dPhi);
+
+	double EtaPos = -1 * log(tan(0.5 * acos(ZPos / pow(r_sqr + pow(ZPos, 2), 0.5))));
+
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << "Cell name: " << cellName << " R_Bin: " << R_Bin << " EtaPos: " << EtaPos << " PhiPos: " << PhiPos << std::endl;
+	// from the new pr
+	if (abs(EtaPos) <= config_json_var.max_eta_endcap) {
+		Phi_Bin = (int)floor(PhiPos / geometry.layer_dphi_flatten.at(R_Bin));
+		Eta_Bin = (int)floor((config_json_var.max_eta_endcap + EtaPos) / (geometry.layer_deta_flatten.at(R_Bin)));
+	}
+
+	
+	ZXYBin[0] = R_Bin;
+	ZXYBin[1] = Eta_Bin;
+	ZXYBin[2] = Phi_Bin;
+
+	CellCoordinates cellCoordinates;
+	cellCoordinates.layer = R_Bin;
+	cellCoordinates.eta   = Eta_Bin;
+	cellCoordinates.phi   = Phi_Bin;
+
+	//return ZXYBin;
+	return cellCoordinates;
 }

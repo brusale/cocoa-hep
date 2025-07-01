@@ -45,6 +45,7 @@
 #include "G4Types.hh"
 #include "FTFP_BERT.hh"
 #include "QGSP_BERT.hh"
+
 #include "G4RunManager.hh"
 #include "G4UImanager.hh"
 
@@ -222,7 +223,10 @@ int main(int argc, char **argv)
 
 	// User Initialization classes (mandatory)
 	//
-	G4VUserDetectorConstruction *detector = new DetectorConstruction(geometry);
+	//G4VUserDetectorConstruction *detector = new DetectorConstruction(geometry);
+	DetectorConstruction *detector = new DetectorConstruction(geometry);
+	//std::unordered_map<G4LogicalVolume *, std::vector<std::pair<int, int*>>>& cells_map = detector->GetCellsMap();
+	std::unordered_map<G4LogicalVolume *, std::vector<std::pair<int, CellCoordinates>>>& cells_map = detector->GetCellsMap();
 	runManager->SetUserInitialization(detector);
 
 	//
@@ -246,15 +250,8 @@ int main(int argc, char **argv)
 	}
 	
 	OutputRunAction *outputrunaction = new OutputRunAction(root_file_path, config_var.Save_truth_particle_graph);
-	runManager->SetUserAction(outputrunaction);
-	//
 	EventAction* event_action = new EventAction();
-	//G4UserEventAction *event_action = new EventAction();
-	runManager->SetUserAction(event_action);
-	//
-
 	G4UserTrackingAction *track_action = new TrackingAction();
-	runManager->SetUserAction(track_action);
 
 	TrackHistoryRecorder *trackHistoryRecorder =event_action->GetTrackHistoryRecorder();
 	CaloHistoryRecorder *caloHistoryRecorder = event_action->GetCaloHistoryRecorder();
@@ -262,10 +259,11 @@ int main(int argc, char **argv)
 	CaloEventAction* caloEventAction = event_action->GetCaloEventAction();
   G4UserSteppingAction *stepping_action = new SteppingAction(trackHistoryRecorder, caloHistoryRecorder,
                                                              trackEventAction, caloEventAction,
-                                                             geometry);
-																											 
-
-  runManager->SetUserAction(stepping_action);
+                                                             geometry, cells_map);
+	runManager->SetUserAction(outputrunaction);
+	runManager->SetUserAction(event_action);
+	runManager->SetUserAction(track_action);
+	runManager->SetUserAction(stepping_action);
 
 	G4VisManager *visManager = new G4VisExecutive;
 	visManager->Initialize();

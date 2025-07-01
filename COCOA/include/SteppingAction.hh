@@ -40,12 +40,13 @@
 #include "TrackEventAction.hh"
 #include "CaloHistoryRecorder.hh"
 #include "TrackHistoryRecorder.hh"
+#include "DetectorConstruction.hh"
 
 class SteppingAction : public G4UserSteppingAction {
 public:
 	SteppingAction(TrackHistoryRecorder* trackHistoryRecorder, CaloHistoryRecorder* caloHistoryRecorder, 
                  TrackEventAction* trackEventAction, CaloEventAction* caloEventAction,
-                 Geometry_definition& geometry);
+                 Geometry_definition& geometry, std::unordered_map<G4LogicalVolume*, std::vector<std::pair<int, CellCoordinates>>>& cells_map);
 
   virtual ~SteppingAction();
 
@@ -72,6 +73,8 @@ public:
 		std::vector<int> crossingTracks;
 		std::unordered_map<int, int> trackId2ParentId;
 		std::vector<int> recordedTracks;
+		std::unordered_map<G4LogicalVolume*, std::vector<std::pair<int, CellCoordinates>>> cells_map_;
+		//std::unordered_map<G4LogicalVolume*, std::vector<std::pair<int, int*>>> cells_map_;
                     
 };
 
